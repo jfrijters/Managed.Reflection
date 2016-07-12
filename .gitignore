@@ -41,3 +41,12 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Visual Studio
+.vs
+*.csproj
+*.sln
+*.dll
+*.pdb
+src/obj
+project.lock.json
