@@ -51,42 +51,43 @@ namespace Managed.Reflection.Metadata
         internal readonly bool bigGenericParam;
         internal readonly bool bigModuleRef;
 
-        protected MetadataRW(Module module, bool bigStrings, bool bigGuids, bool bigBlobs)
+        protected MetadataRW(Table[] tables, bool bigStrings, bool bigGuids, bool bigBlobs)
         {
             this.bigStrings = bigStrings;
             this.bigGuids = bigGuids;
             this.bigBlobs = bigBlobs;
-            this.bigField = module.Field.IsBig;
-            this.bigMethodDef = module.MethodDef.IsBig;
-            this.bigParam = module.Param.IsBig;
-            this.bigTypeDef = module.TypeDef.IsBig;
-            this.bigProperty = module.Property.IsBig;
-            this.bigEvent = module.Event.IsBig;
-            this.bigGenericParam = module.GenericParam.IsBig;
-            this.bigModuleRef = module.ModuleRef.IsBig;
-            this.bigResolutionScope = IsBig(2, module.ModuleTable, module.ModuleRef, module.AssemblyRef, module.TypeRef);
-            this.bigTypeDefOrRef = IsBig(2, module.TypeDef, module.TypeRef, module.TypeSpec);
-            this.bigMemberRefParent = IsBig(3, module.TypeDef, module.TypeRef, module.ModuleRef, module.MethodDef, module.TypeSpec);
-            this.bigMethodDefOrRef = IsBig(1, module.MethodDef, module.MemberRef);
-            this.bigHasCustomAttribute = IsBig(5, module.MethodDef, module.Field, module.TypeRef, module.TypeDef, module.Param, module.InterfaceImpl, module.MemberRef,
-                module.ModuleTable, /*module.Permission,*/ module.Property, module.Event, module.StandAloneSig, module.ModuleRef, module.TypeSpec, module.AssemblyTable,
-                module.AssemblyRef, module.File, module.ExportedType, module.ManifestResource);
-            this.bigCustomAttributeType = IsBig(3, module.MethodDef, module.MemberRef);
-            this.bigHasConstant = IsBig(2, module.Field, module.Param, module.Property);
-            this.bigHasSemantics = IsBig(1, module.Event, module.Property);
-            this.bigHasFieldMarshal = IsBig(1, module.Field, module.Param);
-            this.bigHasDeclSecurity = IsBig(2, module.TypeDef, module.MethodDef, module.AssemblyTable);
-            this.bigTypeOrMethodDef = IsBig(1, module.TypeDef, module.MethodDef);
-            this.bigMemberForwarded = IsBig(1, module.Field, module.MethodDef);
-            this.bigImplementation = IsBig(2, module.File, module.AssemblyRef, module.ExportedType);
+            this.bigField = tables[FieldTable.Index].IsBig;
+            this.bigMethodDef = tables[MethodDefTable.Index].IsBig;
+            this.bigParam = tables[ParamTable.Index].IsBig;
+            this.bigTypeDef = tables[TypeDefTable.Index].IsBig;
+            this.bigProperty = tables[PropertyTable.Index].IsBig;
+            this.bigEvent = tables[EventTable.Index].IsBig;
+            this.bigGenericParam = tables[GenericParamTable.Index].IsBig;
+            this.bigModuleRef = tables[ModuleRefTable.Index].IsBig;
+            this.bigResolutionScope = IsBig(tables, 2, ModuleTable.Index, ModuleRefTable.Index, AssemblyRefTable.Index, TypeRefTable.Index);
+            this.bigTypeDefOrRef = IsBig(tables, 2, TypeDefTable.Index, TypeRefTable.Index, TypeSpecTable.Index);
+            this.bigMemberRefParent = IsBig(tables, 3, TypeDefTable.Index, TypeRefTable.Index, ModuleRefTable.Index, MethodDefTable.Index, TypeSpecTable.Index);
+            this.bigMethodDefOrRef = IsBig(tables, 1, MethodDefTable.Index, MemberRefTable.Index);
+            this.bigHasCustomAttribute = IsBig(tables, 5, MethodDefTable.Index, FieldTable.Index, TypeRefTable.Index, TypeDefTable.Index, ParamTable.Index,
+                InterfaceImplTable.Index, MemberRefTable.Index, ModuleTable.Index, /*PermissionTable.Index,*/ PropertyTable.Index, EventTable.Index,
+                StandAloneSigTable.Index, ModuleRefTable.Index, TypeSpecTable.Index, AssemblyTable.Index, AssemblyRefTable.Index, FileTable.Index,
+                ExportedTypeTable.Index, ManifestResourceTable.Index);
+            this.bigCustomAttributeType = IsBig(tables, 3, MethodDefTable.Index, MemberRefTable.Index);
+            this.bigHasConstant = IsBig(tables, 2, FieldTable.Index, ParamTable.Index, PropertyTable.Index);
+            this.bigHasSemantics = IsBig(tables, 1, EventTable.Index, PropertyTable.Index);
+            this.bigHasFieldMarshal = IsBig(tables, 1, FieldTable.Index, ParamTable.Index);
+            this.bigHasDeclSecurity = IsBig(tables, 2, TypeDefTable.Index, MethodDefTable.Index, AssemblyTable.Index);
+            this.bigTypeOrMethodDef = IsBig(tables, 1, TypeDefTable.Index, MethodDefTable.Index);
+            this.bigMemberForwarded = IsBig(tables, 1, FieldTable.Index, MethodDefTable.Index);
+            this.bigImplementation = IsBig(tables, 2, FileTable.Index, AssemblyRefTable.Index, ExportedTypeTable.Index);
         }
 
-        private static bool IsBig(int bitsUsed, params Table[] tables)
+        private static bool IsBig(Table[] all, int bitsUsed, params int[] tables)
         {
             int limit = 1 << (16 - bitsUsed);
-            foreach (Table table in tables)
+            foreach (var table in tables)
             {
-                if (table.RowCount >= limit)
+                if (all[table].RowCount >= limit)
                 {
                     return true;
                 }

@@ -87,22 +87,22 @@ namespace Managed.Reflection.Writer
 
         protected override void WriteImpl(MetadataWriter mw)
         {
-            Table[] tables = mw.ModuleBuilder.GetTables();
+            Table[] tables = mw.GetTables();
             // Header
             mw.Write(0);        // Reserved
-            int ver = mw.ModuleBuilder.MDStreamVersion;
+            int ver = mw.MDStreamVersion;
             mw.Write((byte)(ver >> 16));    // MajorVersion
             mw.Write((byte)ver);            // MinorVersion
             byte heapSizes = 0;
-            if (mw.ModuleBuilder.Strings.IsBig)
+            if (mw.bigStrings)
             {
                 heapSizes |= 0x01;
             }
-            if (mw.ModuleBuilder.Guids.IsBig)
+            if (mw.bigGuids)
             {
                 heapSizes |= 0x02;
             }
-            if (mw.ModuleBuilder.Blobs.IsBig)
+            if (mw.bigBlobs)
             {
                 heapSizes |= 0x04;
             }
@@ -146,7 +146,7 @@ namespace Managed.Reflection.Writer
         private static int GetLength(MetadataWriter mw)
         {
             int len = 4 + 4 + 8 + 8;
-            foreach (Table table in mw.ModuleBuilder.GetTables())
+            foreach (Table table in mw.GetTables())
             {
                 if (table != null && table.RowCount > 0)
                 {

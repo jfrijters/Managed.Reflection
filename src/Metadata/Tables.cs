@@ -686,7 +686,7 @@ namespace Managed.Reflection.Metadata
 
         internal override void Write(MetadataWriter mw)
         {
-            mw.ModuleBuilder.WriteTypeDefTable(mw);
+            mw.WriteTypeDefVirtualTable();
         }
 
         internal int AllocToken()
@@ -743,7 +743,7 @@ namespace Managed.Reflection.Metadata
 
         internal override void Write(MetadataWriter mw)
         {
-            mw.ModuleBuilder.WriteFieldTable(mw);
+            mw.WriteFieldVirtualTable();
         }
 
         protected override int GetRowSize(RowSizeCalc rsc)
@@ -799,7 +799,7 @@ namespace Managed.Reflection.Metadata
 
         internal override void Write(MetadataWriter mw)
         {
-            mw.ModuleBuilder.WriteMethodDefTable(baseRVA, mw);
+            mw.WriteMethodDefVirtualTable(baseRVA);
         }
 
         protected override int GetRowSize(RowSizeCalc rsc)
@@ -854,7 +854,7 @@ namespace Managed.Reflection.Metadata
 
         internal override void Write(MetadataWriter mw)
         {
-            mw.ModuleBuilder.WriteParamTable(mw);
+            mw.WriteParamVirtualTable();
         }
 
         protected override int GetRowSize(RowSizeCalc rsc)

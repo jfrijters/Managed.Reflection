@@ -34,7 +34,7 @@ namespace Managed.Reflection.Reader
         private int pos = bufferLength;
 
         internal MetadataReader(ModuleReader module, Stream stream, byte heapSizes)
-            : base(module, (heapSizes & 0x01) != 0, (heapSizes & 0x02) != 0, (heapSizes & 0x04) != 0)
+            : base(module.GetTables(), (heapSizes & 0x01) != 0, (heapSizes & 0x02) != 0, (heapSizes & 0x04) != 0)
         {
             this.stream = stream;
         }

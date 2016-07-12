@@ -173,7 +173,7 @@ namespace Managed.Reflection.Writer
             moduleBuilder.UserStrings.Freeze();
             moduleBuilder.Guids.Freeze();
             moduleBuilder.Blobs.Freeze();
-            MetadataWriter mw = new MetadataWriter(moduleBuilder, stream);
+            var mw = new ModuleBuilderMetadataWriter(moduleBuilder, stream);
             moduleBuilder.Tables.Freeze(mw);
             TextSection code = new TextSection(writer, cliHeader, moduleBuilder, ComputeStrongNameSignatureLength(publicKey));
 

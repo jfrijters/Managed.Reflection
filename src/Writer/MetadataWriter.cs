@@ -1,6 +1,6 @@
 /*
   The MIT License (MIT) 
-  Copyright (C) 2008 Jeroen Frijters
+  Copyright (C) 2008-2016 Jeroen Frijters
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -27,23 +27,25 @@ using Managed.Reflection.Metadata;
 
 namespace Managed.Reflection.Writer
 {
-    sealed class MetadataWriter : MetadataRW
+    abstract class MetadataWriter : MetadataRW
     {
-        private readonly ModuleBuilder moduleBuilder;
+        private readonly Table[] tables;
         private readonly Stream stream;
         private readonly byte[] buffer = new byte[8];
 
-        internal MetadataWriter(ModuleBuilder module, Stream stream)
-            : base(module, module.Strings.IsBig, module.Guids.IsBig, module.Blobs.IsBig)
+        internal MetadataWriter(Stream stream, Table[] tables, bool bigStrings, bool bigGuids, bool bigBlobs)
+            : base(tables, bigStrings, bigGuids, bigBlobs)
         {
-            this.moduleBuilder = module;
             this.stream = stream;
+            this.tables = tables;
         }
 
-        internal ModuleBuilder ModuleBuilder
+        internal Table[] GetTables()
         {
-            get { return moduleBuilder; }
+            return tables;
         }
+
+        internal abstract int MDStreamVersion { get; }
 
         internal uint Position
         {
@@ -567,6 +569,47 @@ namespace Managed.Reflection.Writer
             {
                 Write((short)encodedToken);
             }
+        }
+
+        internal abstract void WriteTypeDefVirtualTable();
+        internal abstract void WriteFieldVirtualTable();
+        internal abstract void WriteMethodDefVirtualTable(int baseRVA);
+        internal abstract void WriteParamVirtualTable();
+    }
+
+    sealed class ModuleBuilderMetadataWriter : MetadataWriter
+    {
+        private readonly ModuleBuilder module;
+
+        internal ModuleBuilderMetadataWriter(ModuleBuilder module, Stream stream)
+            : base(stream, module.GetTables(), module.Strings.IsBig, module.Guids.IsBig, module.Blobs.IsBig)
+        {
+            this.module = module;
+        }
+
+        internal override int MDStreamVersion
+        {
+            get { return module.MDStreamVersion; }
+        }
+
+        internal override void WriteFieldVirtualTable()
+        {
+            module.WriteFieldTable(this);
+        }
+
+        internal override void WriteMethodDefVirtualTable(int baseRVA)
+        {
+            module.WriteMethodDefTable(baseRVA, this);
+        }
+
+        internal override void WriteParamVirtualTable()
+        {
+            module.WriteParamTable(this);
+        }
+
+        internal override void WriteTypeDefVirtualTable()
+        {
+            module.WriteTypeDefTable(this);
         }
     }
 }
