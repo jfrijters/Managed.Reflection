@@ -22,6 +22,7 @@
 */
 
 using System;
+using System.Collections.Generic;
 using Managed.Reflection.Emit;
 using Managed.Reflection.Metadata;
 using Managed.Reflection.Writer;
@@ -39,6 +40,8 @@ namespace Managed.Reflection.Impl
         private readonly UserStringHeap UserStrings = new UserStringHeap();
         private readonly GuidHeap Guids = new GuidHeap();
         private readonly BlobHeap Blobs = new BlobHeap();
+        private readonly Dictionary<int, int> tokenMap = new Dictionary<int, int>();
+        private int userEntryPointToken;
 
         internal PortablePdbWriter(ModuleBuilder moduleBuilder)
         {
@@ -111,6 +114,7 @@ namespace Managed.Reflection.Impl
 
         public void RemapToken(int oldToken, int newToken)
         {
+            tokenMap.Add(oldToken, newToken);
         }
 
         public void DefineSequencePoints(ISymbolDocumentWriter document, int[] offsets, int[] lines, int[] columns, int[] endLines, int[] endColumns)
@@ -136,6 +140,7 @@ namespace Managed.Reflection.Impl
 
         public void SetUserEntryPoint(SymbolToken symbolToken)
         {
+            userEntryPointToken = symbolToken.value;
         }
 
         public void Close()
@@ -189,8 +194,21 @@ namespace Managed.Reflection.Impl
 
         internal void WriteMetadata(MetadataWriter mw, out uint guidHeapOffset)
         {
+            var entryPointToken = 0;
+            if (userEntryPointToken != 0)
+            {
+                entryPointToken = userEntryPointToken;
+            }
+            else if (moduleBuilder.Assembly?.EntryPoint?.Module == moduleBuilder)
+            {
+                entryPointToken = -moduleBuilder.Assembly.EntryPoint.MetadataToken | 0x06000000;
+            }
+            if (entryPointToken != 0)
+            {
+                entryPointToken = tokenMap[entryPointToken];
+            }
             Tables.Freeze(mw);
-            var pdb = new PdbHeap(guid, timestamp, moduleBuilder.GetTables());
+            var pdb = new PdbHeap(guid, timestamp, moduleBuilder.GetTables(), entryPointToken);
 
             mw.Write(0x424A5342);           // Signature ("BSJB")
             mw.Write((ushort)1);            // MajorVersion
@@ -262,12 +280,14 @@ namespace Managed.Reflection.Impl
         private readonly Guid guid;
         private readonly uint timestamp;
         private readonly Table[] referencedTables;
+        private readonly int entryPointToken;
 
-        internal PdbHeap(Guid guid, uint timestamp, Table[] referencedTables)
+        internal PdbHeap(Guid guid, uint timestamp, Table[] referencedTables, int entryPointToken)
         {
             this.guid = guid;
             this.timestamp = timestamp;
             this.referencedTables = referencedTables;
+            this.entryPointToken = entryPointToken;
             Freeze();
         }
 
@@ -293,8 +313,7 @@ namespace Managed.Reflection.Impl
             // LAMESPEC the spec says "The same value as stored in CLI header of the PE file.",
             // but the intent is clearly to allow a separate "user" entry point
             // (i.e. it should default to the entry point defined in the PE file, but SetUserEntryPoint should override it)
-            // TODO
-            mw.Write((uint)0);
+            mw.Write(entryPointToken);
             // ReferencedTypeSystemTables
             var bit = 1L;
             var valid = 0L;
