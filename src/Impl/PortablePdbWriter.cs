@@ -50,7 +50,7 @@ namespace Managed.Reflection.Impl
             get { return false; }
         }
 
-        public void DefineLocalVariable2(string name, FieldAttributes attributes, int signature, int addrKind, int addr1, int addr2, int addr3, int startOffset, int endOffset)
+        public void DefineLocalVariable2(string name, FieldAttributes attributes, int signature, SymAddressKind addrKind, int addr1, int addr2, int addr3, int startOffset, int endOffset)
         {
         }
 
@@ -105,7 +105,36 @@ namespace Managed.Reflection.Impl
         {
         }
 
+        public void CloseMethod()
+        {
+        }
+
         public void RemapToken(int oldToken, int newToken)
+        {
+        }
+
+        public void DefineSequencePoints(ISymbolDocumentWriter document, int[] offsets, int[] lines, int[] columns, int[] endLines, int[] endColumns)
+        {
+        }
+
+        public void OpenScope(int startOffset)
+        {
+        }
+
+        public void CloseScope(int endOffset)
+        {
+        }
+
+        public void UsingNamespace(string usingNamespace)
+        {
+        }
+
+        public ISymbolDocumentWriter DefineDocument(string url, Guid language, Guid languageVendor, Guid documentType)
+        {
+            return null;
+        }
+
+        public void SetUserEntryPoint(SymbolToken symbolToken)
         {
         }
 

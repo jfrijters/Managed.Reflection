@@ -181,14 +181,12 @@ namespace Managed.Reflection.Emit
 
         private struct SequencePoint
         {
-#if !NO_SYMBOL_WRITER
             internal ISymbolDocumentWriter document;
             internal int offset;
             internal int startLine;
             internal int startColumn;
             internal int endLine;
             internal int endColumn;
-#endif
         }
 
         private sealed class Scope
@@ -402,12 +400,10 @@ namespace Managed.Reflection.Emit
 
         public void UsingNamespace(string usingNamespace)
         {
-#if !NO_SYMBOL_WRITER
             if (moduleBuilder.symbolWriter != null)
             {
                 moduleBuilder.symbolWriter.UsingNamespace(usingNamespace);
             }
-#endif
         }
 
         public LocalBuilder DeclareLocal(Type localType)
@@ -884,7 +880,6 @@ namespace Managed.Reflection.Emit
             }
         }
 
-#if !NO_SYMBOL_WRITER
         public void MarkSequencePoint(ISymbolDocumentWriter document, int startLine, int startColumn, int endLine, int endColumn)
         {
             SequencePoint sp = new SequencePoint();
@@ -896,7 +891,6 @@ namespace Managed.Reflection.Emit
             sp.endColumn = endColumn;
             sequencePoints.Add(sp);
         }
-#endif
 
         public void ThrowException(Type excType)
         {
@@ -932,7 +926,6 @@ namespace Managed.Reflection.Emit
                 rva = WriteFatHeaderAndCode(bb, localVarSigTok, initLocals);
             }
 
-#if !NO_SYMBOL_WRITER
             if (moduleBuilder.symbolWriter != null)
             {
                 if (sequencePoints.Count != 0)
@@ -960,7 +953,6 @@ namespace Managed.Reflection.Emit
 
                 WriteScope(scope, localVarSigTok);
             }
-#endif
             return rva;
         }
 
@@ -1117,7 +1109,6 @@ namespace Managed.Reflection.Emit
             }
         }
 
-#if !NO_SYMBOL_WRITER
         private void WriteScope(Scope scope, int localVarSigTok)
         {
             moduleBuilder.symbolWriter.OpenScope(scope.startOffset);
@@ -1141,6 +1132,5 @@ namespace Managed.Reflection.Emit
             }
             moduleBuilder.symbolWriter.CloseScope(scope.endOffset);
         }
-#endif
     }
 }

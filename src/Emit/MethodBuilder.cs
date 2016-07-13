@@ -85,19 +85,15 @@ namespace Managed.Reflection.Emit
         {
             if (ilgen != null)
             {
-#if !NO_SYMBOL_WRITER
                 if (this.ModuleBuilder.symbolWriter != null)
                 {
                     this.ModuleBuilder.symbolWriter.OpenMethod(new SymbolToken(-pseudoToken | 0x06000000), this);
                 }
-#endif
                 rva = ilgen.WriteBody(initLocals);
-#if !NO_SYMBOL_WRITER
                 if (this.ModuleBuilder.symbolWriter != null)
                 {
                     this.ModuleBuilder.symbolWriter.CloseMethod();
                 }
-#endif
                 ilgen = null;
             }
         }

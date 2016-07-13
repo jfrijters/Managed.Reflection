@@ -39,31 +39,22 @@ namespace Managed.Reflection.Impl
         public uint PointerToRawData;
     }
 
-#if NO_SYMBOL_WRITER
-    struct SymbolToken
-    {
-        internal SymbolToken(int value) { }
-    }
-
     interface ISymbolWriterImpl
-    {
-        byte[] GetDebugInfo(ref IMAGE_DEBUG_DIRECTORY idd);
-        void RemapToken(int oldToken, int newToken);
-        void DefineLocalVariable2(string name, FieldAttributes attributes, int signature, int addrKind, int addr1, int addr2, int addr3, int startOffset, int endOffset);
-        void OpenMethod(SymbolToken symbolToken, MethodBase mb);
-        bool IsDeterministic { get; }
-        void Close();
-    }
-#else
-    interface ISymbolWriterImpl : ISymbolWriter
     {
         byte[] GetDebugInfo(ref IMAGE_DEBUG_DIRECTORY idd);
         void RemapToken(int oldToken, int newToken);
         void DefineLocalVariable2(string name, FieldAttributes attributes, int signature, SymAddressKind addrKind, int addr1, int addr2, int addr3, int startOffset, int endOffset);
         void OpenMethod(SymbolToken symbolToken, MethodBase mb);
+        void CloseMethod();
         bool IsDeterministic { get; }
+        void Close();
+        void DefineSequencePoints(ISymbolDocumentWriter document, int[] offsets, int[] lines, int[] columns, int[] endLines, int[] endColumns);
+        void OpenScope(int startOffset);
+        void CloseScope(int endOffset);
+        void UsingNamespace(string usingNamespace);
+        ISymbolDocumentWriter DefineDocument(string url, Guid language, Guid languageVendor, Guid documentType);
+        void SetUserEntryPoint(SymbolToken symbolToken);
     }
-#endif
 
     static class SymbolSupport
     {
@@ -81,5 +72,30 @@ namespace Managed.Reflection.Impl
         {
             writer.RemapToken(oldToken, newToken);
         }
+    }
+}
+
+namespace Managed.Reflection.Emit
+{
+    public interface ISymbolDocumentWriter
+    {
+        // TODO
+        // SetCheckSum(Guid, Byte[])
+        // SetSource(Byte[])
+    }
+
+    struct SymbolToken
+    {
+        internal readonly int value;
+
+        internal SymbolToken(int value)
+        {
+            this.value = value;
+        }
+    }
+
+    enum SymAddressKind
+    {
+        ILOffset,
     }
 }

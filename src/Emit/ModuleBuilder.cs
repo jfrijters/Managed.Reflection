@@ -664,12 +664,10 @@ namespace Managed.Reflection.Emit
             }
         }
 
-#if !NO_SYMBOL_WRITER
         public ISymbolDocumentWriter DefineDocument(string url, Guid language, Guid languageVendor, Guid documentType)
         {
             return symbolWriter.DefineDocument(url, language, languageVendor, documentType);
         }
-#endif
 
         public int __GetAssemblyToken(Assembly assembly)
         {
@@ -1441,13 +1439,6 @@ namespace Managed.Reflection.Emit
             get { return moduleName; }
         }
 
-#if !NO_SYMBOL_WRITER
-        public ISymbolWriter GetSymWriter()
-        {
-            return symbolWriter;
-        }
-#endif
-
         public void DefineUnmanagedResource(string resourceFileName)
         {
             // This method reads the specified resource file (Win32 .res file) and converts it into the appropriate format and embeds it in the .rsrc section,
@@ -1468,12 +1459,10 @@ namespace Managed.Reflection.Emit
             {
                 token = -token | 0x06000000;
             }
-#if !NO_SYMBOL_WRITER
             if (symbolWriter != null)
             {
                 symbolWriter.SetUserEntryPoint(new SymbolToken(token));
             }
-#endif
         }
 
         public StringToken GetStringConstant(string str)
