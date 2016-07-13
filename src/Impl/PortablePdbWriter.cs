@@ -290,6 +290,9 @@ namespace Managed.Reflection.Impl
             mw.Write(guid.ToByteArray());
             mw.Write(timestamp);
             // EntryPoint
+            // LAMESPEC the spec says "The same value as stored in CLI header of the PE file.",
+            // but the intent is clearly to allow a separate "user" entry point
+            // (i.e. it should default to the entry point defined in the PE file, but SetUserEntryPoint should override it)
             // TODO
             mw.Write((uint)0);
             // ReferencedTypeSystemTables
