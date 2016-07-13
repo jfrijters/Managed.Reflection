@@ -23,8 +23,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Managed.Reflection.Emit;
 using Managed.Reflection.Metadata;
+using Managed.Reflection.Reader;
 using Managed.Reflection.Writer;
 
 namespace Managed.Reflection.Impl
@@ -41,6 +43,7 @@ namespace Managed.Reflection.Impl
         private readonly GuidHeap Guids = new GuidHeap();
         private readonly BlobHeap Blobs = new BlobHeap();
         private readonly Dictionary<int, int> tokenMap = new Dictionary<int, int>();
+        private readonly DocumentTable Document = new DocumentTable();
         private int userEntryPointToken;
 
         internal PortablePdbWriter(ModuleBuilder moduleBuilder)
@@ -74,7 +77,7 @@ namespace Managed.Reflection.Impl
             //     char szPDB[0];               // zero-terminated UTF8 file name passed to the writer
             // };
             var fileName = GetFileName();
-            var data = new byte[4 + 16 + 4 + System.Text.Encoding.UTF8.GetByteCount(fileName) + 1];
+            var data = new byte[4 + 16 + 4 + Encoding.UTF8.GetByteCount(fileName) + 1];
             // dwSig
             data[0] = (byte)'R';
             data[1] = (byte)'S';
@@ -85,7 +88,7 @@ namespace Managed.Reflection.Impl
             // age
             data[4 + 16] = 1;
             // szPDB
-            System.Text.Encoding.UTF8.GetBytes(fileName, 0, fileName.Length, data, 4 + 16 + 4);
+            Encoding.UTF8.GetBytes(fileName, 0, fileName.Length, data, 4 + 16 + 4);
 
             // update IMAGE_DEBUG_DIRECTORY fields
             idd.Type = 2;   // IMAGE_DEBUG_TYPE_CODEVIEW
@@ -135,7 +138,22 @@ namespace Managed.Reflection.Impl
 
         public ISymbolDocumentWriter DefineDocument(string url, Guid language, Guid languageVendor, Guid documentType)
         {
-            return null;
+            DocumentTable.Record rec;
+            rec.Name = AddDocumentNameBlob(url);
+            rec.HashAlgorithm = 0;
+            rec.Hash = 0;
+            rec.Language = Guids.Add(language);
+            return new DocumentImpl(Document.AddRecord(rec));
+        }
+
+        private int AddDocumentNameBlob(string name)
+        {
+            // TODO optimize the name encoding
+            var bb = new ByteBuffer(2);
+            bb.Write((byte)0);
+            // LAMESPEC spec says "part is a compressed integer into the #Blob heap"
+            bb.WriteCompressedUInt(Blobs.Add(ByteBuffer.Wrap(Encoding.UTF8.GetBytes(name))));
+            return Blobs.Add(bb);
         }
 
         public void SetUserEntryPoint(SymbolToken symbolToken)
@@ -155,8 +173,16 @@ namespace Managed.Reflection.Impl
                 // TODO do we need this?
                 uint guidOffset;
                 var tablesForRowCountOnly = moduleBuilder.GetTables();
-                // TODO fill in our own tables
-                WriteMetadata(new PortablePdbMetadataWriter(fs, tablesForRowCountOnly, Strings.IsBig, Guids.IsBig, Blobs.IsBig), out guidOffset);
+                var tables = new Table[64];
+                tables[DocumentTable.Index] = Document;
+                for (var i = 0; i < tables.Length; i++)
+                {
+                    if (tables[i] != null)
+                    {
+                        tablesForRowCountOnly[i] = tables[i];
+                    }
+                }
+                WriteMetadata(new PortablePdbMetadataWriter(fs, tables, tablesForRowCountOnly, Strings.IsBig, Guids.IsBig, Blobs.IsBig), out guidOffset);
             }
         }
 
@@ -334,6 +360,55 @@ namespace Managed.Reflection.Impl
                     mw.Write(table.RowCount);
                 }
             }
+        }
+    }
+
+    sealed class DocumentImpl : ISymbolDocumentWriter
+    {
+        internal readonly int rId;
+
+        internal DocumentImpl(int rId)
+        {
+            this.rId = rId;
+        }
+    }
+
+    sealed class DocumentTable : Table<DocumentTable.Record>
+    {
+        internal const int Index = 0x30;
+
+        internal struct Record
+        {
+            internal int Name;          // -> BlobHeap
+            internal int HashAlgorithm; // -> GuidHeap
+            internal int Hash;          // -> BlobHeap
+            internal int Language;      // -> GuidHeap
+        }
+
+        internal override void Read(MetadataReader mr)
+        {
+            throw new NotSupportedException();
+        }
+
+        internal override void Write(MetadataWriter mw)
+        {
+            for (int i = 0; i < rowCount; i++)
+            {
+                mw.WriteBlobIndex(records[i].Name);
+                mw.WriteGuidIndex(records[i].HashAlgorithm);
+                mw.WriteBlobIndex(records[i].Hash);
+                mw.WriteGuidIndex(records[i].Language);
+            }
+        }
+
+        protected override int GetRowSize(RowSizeCalc rsc)
+        {
+            return rsc
+                .WriteBlobIndex()
+                .WriteGuidIndex()
+                .WriteBlobIndex()
+                .WriteGuidIndex()
+                .Value;
         }
     }
 }

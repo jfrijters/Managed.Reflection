@@ -615,15 +615,17 @@ namespace Managed.Reflection.Writer
 
     sealed class PortablePdbMetadataWriter : MetadataWriter
     {
-        internal PortablePdbMetadataWriter(Stream stream, Table[] tablesForRowCountOnly, bool bigStrings, bool bigGuids, bool bigBlobs)
+        private readonly Table[] tables;
+
+        internal PortablePdbMetadataWriter(Stream stream, Table[] tables, Table[] tablesForRowCountOnly, bool bigStrings, bool bigGuids, bool bigBlobs)
             : base(stream, tablesForRowCountOnly, bigStrings, bigGuids, bigBlobs)
         {
+            this.tables = tables;
         }
 
         internal override Table[] GetTables()
         {
-            // TODO
-            return new Table[64];
+            return tables;
         }
 
         internal override int MDStreamVersion
