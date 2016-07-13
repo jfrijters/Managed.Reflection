@@ -23,6 +23,7 @@
 
 using System;
 using Managed.Reflection.Emit;
+using Managed.Reflection.Metadata;
 using Managed.Reflection.Writer;
 
 namespace Managed.Reflection.Impl
@@ -160,7 +161,7 @@ namespace Managed.Reflection.Impl
         internal void WriteMetadata(MetadataWriter mw, out uint guidHeapOffset)
         {
             Tables.Freeze(mw);
-            var pdb = new PdbHeap(guid, timestamp);
+            var pdb = new PdbHeap(guid, timestamp, moduleBuilder.GetTables());
 
             mw.Write(0x424A5342);           // Signature ("BSJB")
             mw.Write((ushort)1);            // MajorVersion
@@ -231,18 +232,27 @@ namespace Managed.Reflection.Impl
     {
         private readonly Guid guid;
         private readonly uint timestamp;
+        private readonly Table[] referencedTables;
 
-        internal PdbHeap(Guid guid, uint timestamp)
+        internal PdbHeap(Guid guid, uint timestamp, Table[] referencedTables)
         {
             this.guid = guid;
             this.timestamp = timestamp;
+            this.referencedTables = referencedTables;
             Freeze();
         }
 
         protected override int GetLength()
         {
-            // TODO
-            return 20 + 4 + 8;
+            var tableCount = 0;
+            foreach (var table in referencedTables)
+            {
+                if (table != null && table.RowCount != 0)
+                {
+                    tableCount++;
+                }
+            }
+            return 20 + 4 + 8 + tableCount * 4;
         }
 
         protected override void WriteImpl(MetadataWriter mw)
@@ -254,10 +264,25 @@ namespace Managed.Reflection.Impl
             // TODO
             mw.Write((uint)0);
             // ReferencedTypeSystemTables
-            // TODO
-            mw.Write((long)0);
+            var bit = 1L;
+            var valid = 0L;
+            foreach (var table in referencedTables)
+            {
+                if (table != null && table.RowCount != 0)
+                {
+                    valid |= bit;
+                }
+                bit <<= 1;
+            }
+            mw.Write(valid);
             // TypeSystemTableRows
-            // TODO
+            foreach (var table in referencedTables)
+            {
+                if (table != null && table.RowCount != 0)
+                {
+                    mw.Write(table.RowCount);
+                }
+            }
         }
     }
 }
