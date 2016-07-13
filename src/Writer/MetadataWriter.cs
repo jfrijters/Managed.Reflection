@@ -29,7 +29,6 @@ namespace Managed.Reflection.Writer
 {
     abstract class MetadataWriter : MetadataRW
     {
-        private readonly Table[] tables;
         private readonly Stream stream;
         private readonly byte[] buffer = new byte[8];
 
@@ -37,13 +36,9 @@ namespace Managed.Reflection.Writer
             : base(tables, bigStrings, bigGuids, bigBlobs)
         {
             this.stream = stream;
-            this.tables = tables;
         }
 
-        internal Table[] GetTables()
-        {
-            return tables;
-        }
+        internal abstract Table[] GetTables();
 
         internal abstract int MDStreamVersion { get; }
 
@@ -587,6 +582,11 @@ namespace Managed.Reflection.Writer
             this.module = module;
         }
 
+        internal override Table[] GetTables()
+        {
+            return module.GetTables();
+        }
+
         internal override int MDStreamVersion
         {
             get { return module.MDStreamVersion; }
@@ -610,6 +610,45 @@ namespace Managed.Reflection.Writer
         internal override void WriteTypeDefVirtualTable()
         {
             module.WriteTypeDefTable(this);
+        }
+    }
+
+    sealed class PortablePdbMetadataWriter : MetadataWriter
+    {
+        internal PortablePdbMetadataWriter(Stream stream, Table[] tablesForRowCountOnly, bool bigStrings, bool bigGuids, bool bigBlobs)
+            : base(stream, tablesForRowCountOnly, bigStrings, bigGuids, bigBlobs)
+        {
+        }
+
+        internal override Table[] GetTables()
+        {
+            // TODO
+            return new Table[64];
+        }
+
+        internal override int MDStreamVersion
+        {
+            get { return 0x20000; }
+        }
+
+        internal override void WriteFieldVirtualTable()
+        {
+            throw new NotSupportedException();
+        }
+
+        internal override void WriteMethodDefVirtualTable(int baseRVA)
+        {
+            throw new NotSupportedException();
+        }
+
+        internal override void WriteParamVirtualTable()
+        {
+            throw new NotSupportedException();
+        }
+
+        internal override void WriteTypeDefVirtualTable()
+        {
+            throw new NotSupportedException();
         }
     }
 }
