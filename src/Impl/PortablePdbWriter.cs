@@ -140,40 +140,42 @@ namespace Managed.Reflection.Impl
             // TODO
             bb.WriteCompressedUInt(0);
             // we don't support multiple documents per method, so we don't need to write InitialDocument
-            var previousILOffset = 0;
-            var previousStartLine = 0;
-            var previousStartColumn = 0;
-            for (var i = 0; i < ilOffsets.Length; i++)
+            var previousILOffset = ilOffsets[0];
+            var previousStartLine = startLines[0];
+            var previousStartColumn = startColumns[0];
+            bb.WriteCompressedUInt(previousILOffset);
+            WriteDeltas(bb, endLines[0] - startLines[0], endColumns[0] - startColumns[0]);
+            bb.WriteCompressedUInt(previousStartLine);
+            bb.WriteCompressedUInt(previousStartColumn);
+            for (var i = 1; i < ilOffsets.Length; i++)
             {
-                // sequence-point-record
-                Debug.Assert(previousILOffset == 0 || ilOffsets[i] > previousILOffset);
+                // make sure we don't accidentally encode a document-record
+                Debug.Assert(ilOffsets[i] > previousILOffset);
+                // make sure we don't accidentally encode a hidden-sequence-point-record
                 Debug.Assert(startLines[i] != endLines[i] || startColumns[i] != endColumns[i]);
+                // sequence-point-record
                 bb.WriteCompressedUInt(ilOffsets[i] - previousILOffset);
+                WriteDeltas(bb, endLines[i] - startLines[i], endColumns[i] - startColumns[i]);
+                bb.WriteCompressedInt(startLines[i] - previousStartLine);
+                bb.WriteCompressedInt(startColumns[i] - previousStartColumn);
                 previousILOffset = ilOffsets[i];
-                var deltaLines = endLines[i] - startLines[i];
-                bb.WriteCompressedUInt(deltaLines);
-                if (deltaLines == 0)
-                {
-                    bb.WriteCompressedUInt(endColumns[i] - startColumns[i]);
-                }
-                else
-                {
-                    bb.WriteCompressedInt(endColumns[i] - startColumns[i]);
-                }
-                if (i == 0)
-                {
-                    bb.WriteCompressedUInt(startLines[i]);
-                    bb.WriteCompressedUInt(startColumns[i]);
-                }
-                else
-                {
-                    bb.WriteCompressedInt(startLines[i] - previousStartLine);
-                    bb.WriteCompressedInt(startColumns[i] - previousStartColumn);
-                }
                 previousStartLine = startLines[i];
                 previousStartColumn = startColumns[i];
             }
             methods.Add(new MethodRec { Token = currentMethod, Document = ((DocumentImpl)document).rId, SequencePoints = Blobs.Add(bb) });
+        }
+
+        private static void WriteDeltas(ByteBuffer bb, int deltaLines, int deltaColumns)
+        {
+            bb.WriteCompressedUInt(deltaLines);
+            if (deltaLines == 0)
+            {
+                bb.WriteCompressedUInt(deltaColumns);
+            }
+            else
+            {
+                bb.WriteCompressedInt(deltaColumns);
+            }
         }
 
         public void OpenScope(int startOffset)
