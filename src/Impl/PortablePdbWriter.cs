@@ -140,27 +140,23 @@ namespace Managed.Reflection.Impl
             // TODO
             bb.WriteCompressedUInt(0);
             // we don't support multiple documents per method, so we don't need to write InitialDocument
-            var previousILOffset = ilOffsets[0];
-            var previousStartLine = startLines[0];
-            var previousStartColumn = startColumns[0];
-            bb.WriteCompressedUInt(previousILOffset);
+
+            // sequence-point-record
+            bb.WriteCompressedUInt(ilOffsets[0]);
             WriteDeltas(bb, endLines[0] - startLines[0], endColumns[0] - startColumns[0]);
-            bb.WriteCompressedUInt(previousStartLine);
-            bb.WriteCompressedUInt(previousStartColumn);
+            bb.WriteCompressedUInt(startLines[0]);
+            bb.WriteCompressedUInt(startColumns[0]);
             for (var i = 1; i < ilOffsets.Length; i++)
             {
                 // make sure we don't accidentally encode a document-record
-                Debug.Assert(ilOffsets[i] > previousILOffset);
+                Debug.Assert(ilOffsets[i] > ilOffsets[i - 1]);
                 // make sure we don't accidentally encode a hidden-sequence-point-record
                 Debug.Assert(startLines[i] != endLines[i] || startColumns[i] != endColumns[i]);
                 // sequence-point-record
-                bb.WriteCompressedUInt(ilOffsets[i] - previousILOffset);
+                bb.WriteCompressedUInt(ilOffsets[i] - ilOffsets[i - 1]);
                 WriteDeltas(bb, endLines[i] - startLines[i], endColumns[i] - startColumns[i]);
-                bb.WriteCompressedInt(startLines[i] - previousStartLine);
-                bb.WriteCompressedInt(startColumns[i] - previousStartColumn);
-                previousILOffset = ilOffsets[i];
-                previousStartLine = startLines[i];
-                previousStartColumn = startColumns[i];
+                bb.WriteCompressedInt(startLines[i] - startLines[i - 1]);
+                bb.WriteCompressedInt(startColumns[i] - startColumns[i - 1]);
             }
             methods.Add(new MethodRec { Token = currentMethod, Document = ((DocumentImpl)document).rId, SequencePoints = Blobs.Add(bb) });
         }
