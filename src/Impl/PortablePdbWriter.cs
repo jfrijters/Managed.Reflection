@@ -47,6 +47,13 @@ namespace Managed.Reflection.Impl
         private readonly List<MethodRec> methods = new List<MethodRec>();
         private int userEntryPointToken;
         private int currentMethod;
+        private int localVarSigToken;
+        private ISymbolDocumentWriter document;
+        private int[] ilOffsets;
+        private int[] startLines;
+        private int[] startColumns;
+        private int[] endLines;
+        private int[] endColumns;
 
         struct MethodRec
         {
@@ -67,6 +74,8 @@ namespace Managed.Reflection.Impl
 
         public void DefineLocalVariable2(string name, FieldAttributes attributes, int signature, SymAddressKind addrKind, int addr1, int addr2, int addr3, int startOffset, int endOffset)
         {
+            Debug.Assert(localVarSigToken == 0 || localVarSigToken == signature);
+            localVarSigToken = signature;
         }
 
         private string GetFileName()
@@ -123,7 +132,18 @@ namespace Managed.Reflection.Impl
 
         public void CloseMethod()
         {
+            if (document != null)
+            {
+                DefineSequencePoints();
+                document = null;
+                ilOffsets = null;
+                startLines = null;
+                startColumns = null;
+                endLines = null;
+                endColumns = null;
+            }
             currentMethod = 0;
+            localVarSigToken = 0;
         }
 
         public void RemapToken(int oldToken, int newToken)
@@ -133,12 +153,23 @@ namespace Managed.Reflection.Impl
 
         public void DefineSequencePoints(ISymbolDocumentWriter document, int[] ilOffsets, int[] startLines, int[] startColumns, int[] endLines, int[] endColumns)
         {
+            // we only support a single call per method
+            Debug.Assert(this.document == null);
+
+            this.document = document;
+            this.ilOffsets = ilOffsets;
+            this.startLines = startLines;
+            this.startColumns = startColumns;
+            this.endLines = endLines;
+            this.endColumns = endColumns;
+        }
+
+        private void DefineSequencePoints()
+        {
             // Sequence Points Blob
             var bb = new ByteBuffer(ilOffsets.Length * 10);
             // header
-            // LocalSignature
-            // TODO
-            bb.WriteCompressedUInt(0);
+            bb.WriteCompressedUInt(localVarSigToken);   // LocalSignature
             // we don't support multiple documents per method, so we don't need to write InitialDocument
 
             // sequence-point-record
