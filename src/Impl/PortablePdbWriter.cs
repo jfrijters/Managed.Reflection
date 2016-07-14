@@ -131,10 +131,10 @@ namespace Managed.Reflection.Impl
             tokenMap.Add(oldToken, newToken);
         }
 
-        public void DefineSequencePoints(ISymbolDocumentWriter document, int[] offsets, int[] lines, int[] columns, int[] endLines, int[] endColumns)
+        public void DefineSequencePoints(ISymbolDocumentWriter document, int[] ilOffsets, int[] startLines, int[] startColumns, int[] endLines, int[] endColumns)
         {
             // Sequence Points Blob
-            var bb = new ByteBuffer(offsets.Length * 10);
+            var bb = new ByteBuffer(ilOffsets.Length * 10);
             // header
             // LocalSignature
             // TODO
@@ -143,18 +143,35 @@ namespace Managed.Reflection.Impl
             var previousILOffset = 0;
             var previousStartLine = 0;
             var previousStartColumn = 0;
-            for (var i = 0; i < offsets.Length; i++)
+            for (var i = 0; i < ilOffsets.Length; i++)
             {
                 // sequence-point-record
-                Debug.Assert(previousILOffset == 0 || offsets[i] - previousILOffset != 0);
-                bb.WriteCompressedUInt(offsets[i] - previousILOffset);
-                previousILOffset = offsets[i];
-                bb.WriteCompressedUInt(endLines[i] - lines[i]);
-                bb.WriteCompressedUInt(endColumns[i] - columns[i]);
-                bb.WriteCompressedUInt(lines[i] - previousStartLine);
-                previousStartLine = lines[i];
-                bb.WriteCompressedUInt(columns[i] - previousStartColumn);
-                previousStartColumn = columns[i];
+                Debug.Assert(previousILOffset == 0 || ilOffsets[i] > previousILOffset);
+                Debug.Assert(startLines[i] != endLines[i] || startColumns[i] != endColumns[i]);
+                bb.WriteCompressedUInt(ilOffsets[i] - previousILOffset);
+                previousILOffset = ilOffsets[i];
+                var deltaLines = endLines[i] - startLines[i];
+                bb.WriteCompressedUInt(deltaLines);
+                if (deltaLines == 0)
+                {
+                    bb.WriteCompressedUInt(endColumns[i] - startColumns[i]);
+                }
+                else
+                {
+                    bb.WriteCompressedInt(endColumns[i] - startColumns[i]);
+                }
+                if (i == 0)
+                {
+                    bb.WriteCompressedUInt(startLines[i]);
+                    bb.WriteCompressedUInt(startColumns[i]);
+                }
+                else
+                {
+                    bb.WriteCompressedInt(startLines[i] - previousStartLine);
+                    bb.WriteCompressedInt(startColumns[i] - previousStartColumn);
+                }
+                previousStartLine = startLines[i];
+                previousStartColumn = startColumns[i];
             }
             methods.Add(new MethodRec { Token = currentMethod, Document = ((DocumentImpl)document).rId, SequencePoints = Blobs.Add(bb) });
         }
