@@ -377,6 +377,19 @@ namespace Managed.Reflection.Metadata
                 return this;
             }
 
+            internal RowSizeCalc WriteDocument()
+            {
+                if (mw.bigDocument)
+                {
+                    this.size += 4;
+                }
+                else
+                {
+                    this.size += 2;
+                }
+                return this;
+            }
+
             internal int Value
             {
                 get { return size; }
@@ -2715,6 +2728,78 @@ namespace Managed.Reflection.Metadata
                 records[i].Owner = fixups[records[i].Owner - 1] + 1;
             }
             Sort();
+        }
+    }
+
+    sealed class DocumentTable : Table<DocumentTable.Record>
+    {
+        internal const int Index = 0x30;
+
+        internal struct Record
+        {
+            internal int Name;          // -> BlobHeap
+            internal int HashAlgorithm; // -> GuidHeap
+            internal int Hash;          // -> BlobHeap
+            internal int Language;      // -> GuidHeap
+        }
+
+        internal override void Read(MetadataReader mr)
+        {
+            throw new NotSupportedException();
+        }
+
+        internal override void Write(MetadataWriter mw)
+        {
+            for (int i = 0; i < rowCount; i++)
+            {
+                mw.WriteBlobIndex(records[i].Name);
+                mw.WriteGuidIndex(records[i].HashAlgorithm);
+                mw.WriteBlobIndex(records[i].Hash);
+                mw.WriteGuidIndex(records[i].Language);
+            }
+        }
+
+        protected override int GetRowSize(RowSizeCalc rsc)
+        {
+            return rsc
+                .WriteBlobIndex()
+                .WriteGuidIndex()
+                .WriteBlobIndex()
+                .WriteGuidIndex()
+                .Value;
+        }
+    }
+
+    sealed class MethodDebugInformationTable : Table<MethodDebugInformationTable.Record>
+    {
+        internal const int Index = 0x31;
+
+        internal struct Record
+        {
+            internal int Document;          // -> Documents row id
+            internal int SequencePoints;    // -> BlobHeap
+        }
+
+        internal override void Read(MetadataReader mr)
+        {
+            throw new NotSupportedException();
+        }
+
+        internal override void Write(MetadataWriter mw)
+        {
+            for (int i = 0; i < rowCount; i++)
+            {
+                mw.WriteDocument(records[i].Document);
+                mw.WriteBlobIndex(records[i].SequencePoints);
+            }
+        }
+
+        protected override int GetRowSize(RowSizeCalc rsc)
+        {
+            return rsc
+                .WriteDocument()
+                .WriteBlobIndex()
+                .Value;
         }
     }
 }

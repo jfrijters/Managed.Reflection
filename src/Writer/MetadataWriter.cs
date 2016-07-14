@@ -566,6 +566,18 @@ namespace Managed.Reflection.Writer
             }
         }
 
+        internal void WriteDocument(int index)
+        {
+            if (bigDocument)
+            {
+                Write(index);
+            }
+            else
+            {
+                Write((short)index);
+            }
+        }
+
         internal abstract void WriteTypeDefVirtualTable();
         internal abstract void WriteFieldVirtualTable();
         internal abstract void WriteMethodDefVirtualTable(int baseRVA);

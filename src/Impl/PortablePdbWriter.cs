@@ -23,10 +23,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using Managed.Reflection.Emit;
 using Managed.Reflection.Metadata;
-using Managed.Reflection.Reader;
 using Managed.Reflection.Writer;
 
 namespace Managed.Reflection.Impl
@@ -44,7 +44,16 @@ namespace Managed.Reflection.Impl
         private readonly BlobHeap Blobs = new BlobHeap();
         private readonly Dictionary<int, int> tokenMap = new Dictionary<int, int>();
         private readonly DocumentTable Document = new DocumentTable();
+        private readonly List<MethodRec> methods = new List<MethodRec>();
         private int userEntryPointToken;
+        private int currentMethod;
+
+        struct MethodRec
+        {
+            internal int Token;
+            internal int Document;
+            internal int SequencePoints;
+        }
 
         internal PortablePdbWriter(ModuleBuilder moduleBuilder)
         {
@@ -109,10 +118,12 @@ namespace Managed.Reflection.Impl
 
         public void OpenMethod(SymbolToken symbolToken, MethodBase mb)
         {
+            currentMethod = symbolToken.value;
         }
 
         public void CloseMethod()
         {
+            currentMethod = 0;
         }
 
         public void RemapToken(int oldToken, int newToken)
@@ -122,6 +133,30 @@ namespace Managed.Reflection.Impl
 
         public void DefineSequencePoints(ISymbolDocumentWriter document, int[] offsets, int[] lines, int[] columns, int[] endLines, int[] endColumns)
         {
+            // Sequence Points Blob
+            var bb = new ByteBuffer(offsets.Length * 10);
+            // header
+            // LocalSignature
+            // TODO
+            bb.WriteCompressedUInt(0);
+            // we don't support multiple documents per method, so we don't need to write InitialDocument
+            var previousILOffset = 0;
+            var previousStartLine = 0;
+            var previousStartColumn = 0;
+            for (var i = 0; i < offsets.Length; i++)
+            {
+                // sequence-point-record
+                Debug.Assert(previousILOffset == 0 || offsets[i] - previousILOffset != 0);
+                bb.WriteCompressedUInt(offsets[i] - previousILOffset);
+                previousILOffset = offsets[i];
+                bb.WriteCompressedUInt(endLines[i] - lines[i]);
+                bb.WriteCompressedUInt(endColumns[i] - columns[i]);
+                bb.WriteCompressedUInt(lines[i] - previousStartLine);
+                previousStartLine = lines[i];
+                bb.WriteCompressedUInt(columns[i] - previousStartColumn);
+                previousStartColumn = columns[i];
+            }
+            methods.Add(new MethodRec { Token = currentMethod, Document = ((DocumentImpl)document).rId, SequencePoints = Blobs.Add(bb) });
         }
 
         public void OpenScope(int startOffset)
@@ -175,6 +210,7 @@ namespace Managed.Reflection.Impl
                 var tablesForRowCountOnly = moduleBuilder.GetTables();
                 var tables = new Table[64];
                 tables[DocumentTable.Index] = Document;
+                tables[MethodDebugInformationTable.Index] = CreateMethodDebugInformation();
                 for (var i = 0; i < tables.Length; i++)
                 {
                     if (tables[i] != null)
@@ -184,6 +220,19 @@ namespace Managed.Reflection.Impl
                 }
                 WriteMetadata(new PortablePdbMetadataWriter(fs, tables, tablesForRowCountOnly, Strings.IsBig, Guids.IsBig, Blobs.IsBig), out guidOffset);
             }
+        }
+
+        private MethodDebugInformationTable CreateMethodDebugInformation()
+        {
+            var table = new MethodDebugInformationTable();
+            table.RowCount = moduleBuilder.MethodDef.RowCount;
+            foreach (var method in methods)
+            {
+                var index = (tokenMap[method.Token] & 0xFFFFFF) - 1;
+                table.records[index].Document = method.Document;
+                table.records[index].SequencePoints = method.SequencePoints;
+            }
+            return table;
         }
 
         private int GetHeaderLength()
@@ -370,45 +419,6 @@ namespace Managed.Reflection.Impl
         internal DocumentImpl(int rId)
         {
             this.rId = rId;
-        }
-    }
-
-    sealed class DocumentTable : Table<DocumentTable.Record>
-    {
-        internal const int Index = 0x30;
-
-        internal struct Record
-        {
-            internal int Name;          // -> BlobHeap
-            internal int HashAlgorithm; // -> GuidHeap
-            internal int Hash;          // -> BlobHeap
-            internal int Language;      // -> GuidHeap
-        }
-
-        internal override void Read(MetadataReader mr)
-        {
-            throw new NotSupportedException();
-        }
-
-        internal override void Write(MetadataWriter mw)
-        {
-            for (int i = 0; i < rowCount; i++)
-            {
-                mw.WriteBlobIndex(records[i].Name);
-                mw.WriteGuidIndex(records[i].HashAlgorithm);
-                mw.WriteBlobIndex(records[i].Hash);
-                mw.WriteGuidIndex(records[i].Language);
-            }
-        }
-
-        protected override int GetRowSize(RowSizeCalc rsc)
-        {
-            return rsc
-                .WriteBlobIndex()
-                .WriteGuidIndex()
-                .WriteBlobIndex()
-                .WriteGuidIndex()
-                .Value;
         }
     }
 }
