@@ -79,9 +79,8 @@ namespace Managed.Reflection.Emit
 {
     public interface ISymbolDocumentWriter
     {
-        // TODO
-        // SetCheckSum(Guid, Byte[])
-        // SetSource(Byte[])
+        void SetCheckSum(Guid algorithmId, byte[] checkSum);
+        void SetSource(byte[] source);
     }
 
     struct SymbolToken

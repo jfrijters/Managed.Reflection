@@ -224,7 +224,7 @@ namespace Managed.Reflection.Impl
             rec.HashAlgorithm = 0;
             rec.Hash = 0;
             rec.Language = Guids.Add(language);
-            return new DocumentImpl(Document.AddRecord(rec));
+            return new DocumentImpl(this, Document.AddRecord(rec));
         }
 
         private int AddDocumentNameBlob(string name)
@@ -394,6 +394,18 @@ namespace Managed.Reflection.Impl
             System.Text.Encoding.UTF8.GetBytes(str, 0, str.Length, buf, 0);
             return buf;
         }
+
+        internal void SetCheckSum(int rId, Guid algorithmId, byte[] checkSum)
+        {
+            Document.records[rId - 1].HashAlgorithm = Guids.Add(algorithmId);
+            Document.records[rId - 1].Hash = Blobs.Add(ByteBuffer.Wrap(checkSum));
+        }
+
+        internal void SetSource(int rId, byte[] source)
+        {
+            // Ref.Emit doesn't implement this either
+            throw new NotImplementedException();
+        }
     }
 
     sealed class PdbHeap : SimpleHeap
@@ -460,11 +472,23 @@ namespace Managed.Reflection.Impl
 
     sealed class DocumentImpl : ISymbolDocumentWriter
     {
+        private readonly PortablePdbWriter writer;
         internal readonly int rId;
 
-        internal DocumentImpl(int rId)
+        internal DocumentImpl(PortablePdbWriter writer, int rId)
         {
+            this.writer = writer;
             this.rId = rId;
+        }
+
+        public void SetCheckSum(Guid algorithmId, byte[] checkSum)
+        {
+            writer.SetCheckSum(rId, algorithmId, checkSum);
+        }
+
+        public void SetSource(byte[] source)
+        {
+            writer.SetSource(rId, source);
         }
     }
 }
