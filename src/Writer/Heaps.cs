@@ -120,7 +120,7 @@ namespace Managed.Reflection.Writer
                 bit <<= 1;
             }
             mw.Write(valid);// Valid
-            mw.Write(0x0016003301FA00L);// Sorted
+            mw.Write(0x0416003301FA00L);// Sorted
             // Rows
             foreach (Table table in tables)
             {

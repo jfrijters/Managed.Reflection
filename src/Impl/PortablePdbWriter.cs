@@ -48,18 +48,40 @@ namespace Managed.Reflection.Impl
         private int userEntryPointToken;
         private int currentMethod;
         private int localVarSigToken;
-        private ISymbolDocumentWriter document;
+        private DocumentImpl document;
         private int[] ilOffsets;
         private int[] startLines;
         private int[] startColumns;
         private int[] endLines;
         private int[] endColumns;
+        private Scope scope;
+        private readonly List<Scope> scopes = new List<Scope>();
 
         struct MethodRec
         {
             internal int Token;
             internal int Document;
             internal int SequencePoints;
+            internal Scope[] Scopes;
+        }
+
+        sealed class Scope
+        {
+            internal readonly Scope Parent;
+            internal int StartOffset;
+            internal int Length;
+            internal readonly List<Variable> VariableList = new List<Variable>();
+
+            internal Scope(Scope parent)
+            {
+                Parent = parent;
+            }
+        }
+
+        struct Variable
+        {
+            internal string Name;
+            internal int Index;
         }
 
         internal PortablePdbWriter(ModuleBuilder moduleBuilder)
@@ -76,6 +98,7 @@ namespace Managed.Reflection.Impl
         {
             Debug.Assert(localVarSigToken == 0 || localVarSigToken == signature);
             localVarSigToken = signature;
+            scope.VariableList.Add(new Variable { Name = name, Index = addr1 });
         }
 
         private string GetFileName()
@@ -134,13 +157,16 @@ namespace Managed.Reflection.Impl
         {
             if (document != null)
             {
-                DefineSequencePoints();
+                var blob = DefineSequencePoints();
+                methods.Add(new MethodRec { Token = currentMethod, Document = document.rId, SequencePoints = blob, Scopes = scopes.ToArray() });
                 document = null;
                 ilOffsets = null;
                 startLines = null;
                 startColumns = null;
                 endLines = null;
                 endColumns = null;
+                scope = null;
+                scopes.Clear();
             }
             currentMethod = 0;
             localVarSigToken = 0;
@@ -156,7 +182,7 @@ namespace Managed.Reflection.Impl
             // we only support a single call per method
             Debug.Assert(this.document == null);
 
-            this.document = document;
+            this.document = (DocumentImpl)document;
             this.ilOffsets = ilOffsets;
             this.startLines = startLines;
             this.startColumns = startColumns;
@@ -164,7 +190,7 @@ namespace Managed.Reflection.Impl
             this.endColumns = endColumns;
         }
 
-        private void DefineSequencePoints()
+        private int DefineSequencePoints()
         {
             // Sequence Points Blob
             var bb = new ByteBuffer(ilOffsets.Length * 10);
@@ -189,7 +215,7 @@ namespace Managed.Reflection.Impl
                 bb.WriteCompressedInt(startLines[i] - startLines[i - 1]);
                 bb.WriteCompressedInt(startColumns[i] - startColumns[i - 1]);
             }
-            methods.Add(new MethodRec { Token = currentMethod, Document = ((DocumentImpl)document).rId, SequencePoints = Blobs.Add(bb) });
+            return Blobs.Add(bb);
         }
 
         private static void WriteDeltas(ByteBuffer bb, int deltaLines, int deltaColumns)
@@ -207,10 +233,15 @@ namespace Managed.Reflection.Impl
 
         public void OpenScope(int startOffset)
         {
+            scope = new Scope(scope);
+            scopes.Add(scope);
+            scope.StartOffset = startOffset;
         }
 
         public void CloseScope(int endOffset)
         {
+            scope.Length = endOffset - scope.StartOffset;
+            scope = scope.Parent;
         }
 
         public void UsingNamespace(string usingNamespace)
@@ -244,6 +275,13 @@ namespace Managed.Reflection.Impl
 
         public void Close()
         {
+            var localScope = new LocalScopeTable();
+            var localVariable = new LocalVariableTable();
+            var importScope = new ImportScopeTable();
+            importScope.AddRecord(new ImportScopeTable.Record { Parent = 0, Imports = 0 });
+            importScope.AddRecord(new ImportScopeTable.Record { Parent = 1, Imports = 0 });
+            CreateLocalScopeAndLocalVariables(localScope, localVariable);
+
             Strings.Freeze();
             UserStrings.Freeze();
             Guids.Freeze();
@@ -257,6 +295,9 @@ namespace Managed.Reflection.Impl
                 var tables = new Table[64];
                 tables[DocumentTable.Index] = Document;
                 tables[MethodDebugInformationTable.Index] = CreateMethodDebugInformation();
+                tables[LocalScopeTable.Index] = localScope;
+                tables[LocalVariableTable.Index] = localVariable;
+                tables[ImportScopeTable.Index] = importScope;
                 for (var i = 0; i < tables.Length; i++)
                 {
                     if (tables[i] != null)
@@ -265,6 +306,37 @@ namespace Managed.Reflection.Impl
                     }
                 }
                 WriteMetadata(new PortablePdbMetadataWriter(fs, tables, tablesForRowCountOnly, Strings.IsBig, Guids.IsBig, Blobs.IsBig), out guidOffset);
+            }
+        }
+
+        private void CreateLocalScopeAndLocalVariables(LocalScopeTable localScope, LocalVariableTable localVariable)
+        {
+            var methods = this.methods.ToArray();
+            Array.Sort(methods, (m1, m2) => tokenMap[m1.Token].CompareTo(tokenMap[m2.Token]));
+            for (var i = 0; i < methods.Length; i++)
+            {
+                var scopes = methods[i].Scopes;
+                Array.Sort(scopes, (s1, s2) => s1.StartOffset != s2.StartOffset ? s1.StartOffset.CompareTo(s2.StartOffset) : s1.Length.CompareTo(s2.Length));
+                for (var j = 0; j < scopes.Length; j++)
+                {
+                    LocalScopeTable.Record scope;
+                    scope.Method = methods[i].Token & 0xFFFFFF;
+                    // TODO
+                    scope.ImportScope = 2;
+                    scope.VariableList = localVariable.RowCount + 1;
+                    scope.ConstantList = 1;
+                    scope.StartOffset = scopes[j].StartOffset;
+                    scope.Length = scopes[j].Length;
+                    localScope.AddRecord(scope);
+                    for (var k = 0; k < scopes[j].VariableList.Count; k++)
+                    {
+                        LocalVariableTable.Record variable;
+                        variable.Attributes = 0;
+                        variable.Index = (short)scopes[j].VariableList[k].Index;
+                        variable.Name = Strings.Add(scopes[j].VariableList[k].Name);
+                        localVariable.AddRecord(variable);
+                    }
+                }
             }
         }
 
