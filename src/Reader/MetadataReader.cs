@@ -419,5 +419,69 @@ namespace Managed.Reflection.Reader
         {
             return ReadIndex(bigLocalConstant);
         }
+
+        internal int ReadHasCustomDebugInformation()
+        {
+            int codedIndex = ReadIndex(bigHasCustomDebugInformation);
+            switch (codedIndex & 31)
+            {
+                case 0:
+                    return (MethodDefTable.Index << 24) + (codedIndex >> 5);
+                case 1:
+                    return (FieldTable.Index << 24) + (codedIndex >> 5);
+                case 2:
+                    return (TypeRefTable.Index << 24) + (codedIndex >> 5);
+                case 3:
+                    return (TypeDefTable.Index << 24) + (codedIndex >> 5);
+                case 4:
+                    return (ParamTable.Index << 24) + (codedIndex >> 5);
+                case 5:
+                    return (InterfaceImplTable.Index << 24) + (codedIndex >> 5);
+                case 6:
+                    return (MemberRefTable.Index << 24) + (codedIndex >> 5);
+                case 7:
+                    return (ModuleTable.Index << 24) + (codedIndex >> 5);
+                case 8:
+                    return (DeclSecurityTable.Index << 24) + (codedIndex >> 5);
+                case 9:
+                    return (PropertyTable.Index << 24) + (codedIndex >> 5);
+                case 10:
+                    return (EventTable.Index << 24) + (codedIndex >> 5);
+                case 11:
+                    return (StandAloneSigTable.Index << 24) + (codedIndex >> 5);
+                case 12:
+                    return (ModuleRefTable.Index << 24) + (codedIndex >> 5);
+                case 13:
+                    return (TypeSpecTable.Index << 24) + (codedIndex >> 5);
+                case 14:
+                    return (AssemblyTable.Index << 24) + (codedIndex >> 5);
+                case 15:
+                    return (AssemblyRefTable.Index << 24) + (codedIndex >> 5);
+                case 16:
+                    return (FileTable.Index << 24) + (codedIndex >> 5);
+                case 17:
+                    return (ExportedTypeTable.Index << 24) + (codedIndex >> 5);
+                case 18:
+                    return (ManifestResourceTable.Index << 24) + (codedIndex >> 5);
+                case 19:
+                    return (GenericParamTable.Index << 24) + (codedIndex >> 5);
+                case 20:
+                    return (GenericParamConstraintTable.Index << 24) + (codedIndex >> 5);
+                case 21:
+                    return (MethodSpecTable.Index << 24) + (codedIndex >> 5);
+                case 22:
+                    return (DocumentTable.Index << 24) + (codedIndex >> 5);
+                case 23:
+                    return (LocalScopeTable.Index << 24) + (codedIndex >> 5);
+                case 24:
+                    return (LocalVariableTable.Index << 24) + (codedIndex >> 5);
+                case 25:
+                    return (LocalConstantTable.Index << 24) + (codedIndex >> 5);
+                case 26:
+                    return (ImportScopeTable.Index << 24) + (codedIndex >> 5);
+                default:
+                    throw new BadImageFormatException();
+            }
+        }
     }
 }

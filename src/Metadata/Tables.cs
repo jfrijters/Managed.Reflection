@@ -429,6 +429,19 @@ namespace Managed.Reflection.Metadata
                 return this;
             }
 
+            internal RowSizeCalc WriteHasCustomDebugInformation()
+            {
+                if (mw.bigHasCustomDebugInformation)
+                {
+                    size += 4;
+                }
+                else
+                {
+                    size += 2;
+                }
+                return this;
+            }
+
             internal int Value
             {
                 get { return size; }
@@ -2995,7 +3008,11 @@ namespace Managed.Reflection.Metadata
 
         internal override void Read(MetadataReader mr)
         {
-            throw new NotSupportedException();
+            for (int i = 0; i < records.Length; i++)
+            {
+                records[i].Parent = mr.ReadImportScope();
+                records[i].Imports = mr.ReadBlobIndex();
+            }
         }
 
         internal override void Write(MetadataWriter mw)
@@ -3011,6 +3028,84 @@ namespace Managed.Reflection.Metadata
         {
             return rsc
                 .WriteImportScope()
+                .WriteBlobIndex()
+                .Value;
+        }
+    }
+
+    sealed class StateMachineMethodTable : Table<StateMachineMethodTable.Record>
+    {
+        internal const int Index = 0x36;
+
+        internal struct Record
+        {
+            internal int MoveNextMethod;    // MethodDef row id
+            internal int KickoffMethod;     // MethodDef row id
+        }
+
+        internal override void Read(MetadataReader mr)
+        {
+            for (int i = 0; i < records.Length; i++)
+            {
+                records[i].MoveNextMethod = mr.ReadMethodDef();
+                records[i].KickoffMethod = mr.ReadMethodDef();
+            }
+        }
+
+        internal override void Write(MetadataWriter mw)
+        {
+            for (int i = 0; i < rowCount; i++)
+            {
+                mw.WriteMethodDef(records[i].MoveNextMethod);
+                mw.WriteMethodDef(records[i].KickoffMethod);
+            }
+        }
+
+        protected override int GetRowSize(RowSizeCalc rsc)
+        {
+            return rsc
+                .WriteMethodDef()
+                .WriteMethodDef()
+                .Value;
+        }
+    }
+
+    sealed class CustomDebugInformationTable : Table<CustomDebugInformationTable.Record>
+    {
+        internal const int Index = 0x37;
+
+        internal struct Record
+        {
+            internal int Parent;        // HasCustomDebugInformation coded index
+            internal int Kind;          // -> GuidHeap
+            internal int Value;         // -> BlobHeap
+        }
+
+        internal override void Read(MetadataReader mr)
+        {
+            for (int i = 0; i < records.Length; i++)
+            {
+                records[i].Parent = mr.ReadHasCustomDebugInformation();
+                records[i].Kind = mr.ReadGuidIndex();
+                records[i].Value = mr.ReadBlobIndex();
+            }
+        }
+
+        internal override void Write(MetadataWriter mw)
+        {
+            for (int i = 0; i < rowCount; i++)
+            {
+                mw.WriteHasCustomDebugInformation(records[i].Parent);
+                mw.WriteGuidIndex(records[i].Kind);
+                mw.WriteBlobIndex(records[i].Value);
+            }
+        }
+
+        protected override int GetRowSize(RowSizeCalc rsc)
+        {
+            return rsc
+                .WriteHasCustomDebugInformation()
+                .WriteGuidIndex()
                 .WriteBlobIndex()
                 .Value;
         }

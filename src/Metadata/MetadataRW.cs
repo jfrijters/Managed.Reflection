@@ -54,6 +54,7 @@ namespace Managed.Reflection.Metadata
         internal readonly bool bigImportScope;
         internal readonly bool bigLocalVariable;
         internal readonly bool bigLocalConstant;
+        internal readonly bool bigHasCustomDebugInformation;
 
         protected MetadataRW(Table[] tables, bool bigStrings, bool bigGuids, bool bigBlobs)
         {
@@ -88,6 +89,11 @@ namespace Managed.Reflection.Metadata
             this.bigTypeOrMethodDef = IsBig(tables, 1, TypeDefTable.Index, MethodDefTable.Index);
             this.bigMemberForwarded = IsBig(tables, 1, FieldTable.Index, MethodDefTable.Index);
             this.bigImplementation = IsBig(tables, 2, FileTable.Index, AssemblyRefTable.Index, ExportedTypeTable.Index);
+            this.bigHasCustomDebugInformation = IsBig(tables, 5, MethodDefTable.Index, FieldTable.Index, TypeRefTable.Index, TypeDefTable.Index,
+                ParamTable.Index, InterfaceImplTable.Index, MemberRefTable.Index, ModuleTable.Index, DeclSecurityTable.Index, PropertyTable.Index,
+                EventTable.Index, StandAloneSigTable.Index, ModuleRefTable.Index, TypeSpecTable.Index, AssemblyTable.Index, AssemblyRefTable.Index,
+                FileTable.Index, ExportedTypeTable.Index, ManifestResourceTable.Index, GenericParamTable.Index, GenericParamConstraintTable.Index,
+                MethodSpecTable.Index, DocumentTable.Index, LocalScopeTable.Index, LocalVariableTable.Index, LocalConstantTable.Index, ImportScopeTable.Index);
         }
 
         private static bool IsBig(Table[] all, int bitsUsed, params int[] tables)

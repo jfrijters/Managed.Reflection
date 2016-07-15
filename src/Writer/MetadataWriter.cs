@@ -614,6 +614,82 @@ namespace Managed.Reflection.Writer
             }
         }
 
+        private static int EncodeHasCustomDebugInformation(int token)
+        {
+            switch (token >> 24)
+            {
+                case MethodDefTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 0;
+                case FieldTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 1;
+                case TypeRefTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 2;
+                case TypeDefTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 3;
+                case ParamTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 4;
+                case InterfaceImplTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 5;
+                case MemberRefTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 6;
+                case ModuleTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 7;
+                case DeclSecurityTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 8;
+                case PropertyTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 9;
+                case EventTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 10;
+                case StandAloneSigTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 11;
+                case ModuleRefTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 12;
+                case TypeSpecTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 13;
+                case AssemblyTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 14;
+                case AssemblyRefTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 15;
+                case FileTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 16;
+                case ExportedTypeTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 17;
+                case ManifestResourceTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 18;
+                case GenericParamTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 19;
+                case GenericParamConstraintTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 20;
+                case MethodSpecTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 21;
+                case DocumentTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 22;
+                case LocalScopeTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 23;
+                case LocalVariableTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 24;
+                case LocalConstantTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 25;
+                case ImportScopeTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 26;
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        internal void WriteHasCustomDebugInformation(int token)
+        {
+            int encoded = EncodeHasCustomDebugInformation(token);
+            if (bigHasCustomDebugInformation)
+            {
+                Write(encoded);
+            }
+            else
+            {
+                Write((short)encoded);
+            }
+        }
+
         internal abstract void WriteTypeDefVirtualTable();
         internal abstract void WriteFieldVirtualTable();
         internal abstract void WriteMethodDefVirtualTable(int baseRVA);
