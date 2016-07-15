@@ -101,7 +101,7 @@ namespace Managed.Reflection.Metadata
             int limit = 1 << (16 - bitsUsed);
             foreach (var table in tables)
             {
-                if (all[table].RowCount >= limit)
+                if (all[table]?.RowCount >= limit)
                 {
                     return true;
                 }
