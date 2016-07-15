@@ -578,6 +578,42 @@ namespace Managed.Reflection.Writer
             }
         }
 
+        internal void WriteImportScope(int index)
+        {
+            if (bigImportScope)
+            {
+                Write(index);
+            }
+            else
+            {
+                Write((short)index);
+            }
+        }
+
+        internal void WriteLocalVariable(int index)
+        {
+            if (bigLocalVariable)
+            {
+                Write(index);
+            }
+            else
+            {
+                Write((short)index);
+            }
+        }
+
+        internal void WriteLocalConstant(int index)
+        {
+            if (bigLocalConstant)
+            {
+                Write(index);
+            }
+            else
+            {
+                Write((short)index);
+            }
+        }
+
         internal abstract void WriteTypeDefVirtualTable();
         internal abstract void WriteFieldVirtualTable();
         internal abstract void WriteMethodDefVirtualTable(int baseRVA);

@@ -51,6 +51,9 @@ namespace Managed.Reflection.Metadata
         internal readonly bool bigGenericParam;
         internal readonly bool bigModuleRef;
         internal readonly bool bigDocument;
+        internal readonly bool bigImportScope;
+        internal readonly bool bigLocalVariable;
+        internal readonly bool bigLocalConstant;
 
         protected MetadataRW(Table[] tables, bool bigStrings, bool bigGuids, bool bigBlobs)
         {
@@ -66,6 +69,9 @@ namespace Managed.Reflection.Metadata
             this.bigGenericParam = tables[GenericParamTable.Index].IsBig;
             this.bigModuleRef = tables[ModuleRefTable.Index].IsBig;
             this.bigDocument = tables[DocumentTable.Index]?.IsBig ?? false;
+            this.bigImportScope = tables[ImportScopeTable.Index]?.IsBig ?? false;
+            this.bigLocalVariable = tables[LocalVariableTable.Index]?.IsBig ?? false;
+            this.bigLocalConstant = tables[LocalConstantTable.Index]?.IsBig ?? false;
             this.bigResolutionScope = IsBig(tables, 2, ModuleTable.Index, ModuleRefTable.Index, AssemblyRefTable.Index, TypeRefTable.Index);
             this.bigTypeDefOrRef = IsBig(tables, 2, TypeDefTable.Index, TypeRefTable.Index, TypeSpecTable.Index);
             this.bigMemberRefParent = IsBig(tables, 3, TypeDefTable.Index, TypeRefTable.Index, ModuleRefTable.Index, MethodDefTable.Index, TypeSpecTable.Index);

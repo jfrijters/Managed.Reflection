@@ -390,6 +390,45 @@ namespace Managed.Reflection.Metadata
                 return this;
             }
 
+            internal RowSizeCalc WriteImportScope()
+            {
+                if (mw.bigImportScope)
+                {
+                    this.size += 4;
+                }
+                else
+                {
+                    this.size += 2;
+                }
+                return this;
+            }
+
+            internal RowSizeCalc WriteLocalVariable()
+            {
+                if (mw.bigLocalVariable)
+                {
+                    this.size += 4;
+                }
+                else
+                {
+                    this.size += 2;
+                }
+                return this;
+            }
+
+            internal RowSizeCalc WriteLocalConstant()
+            {
+                if (mw.bigLocalConstant)
+                {
+                    this.size += 4;
+                }
+                else
+                {
+                    this.size += 2;
+                }
+                return this;
+            }
+
             internal int Value
             {
                 get { return size; }
@@ -2745,7 +2784,13 @@ namespace Managed.Reflection.Metadata
 
         internal override void Read(MetadataReader mr)
         {
-            throw new NotSupportedException();
+            for (int i = 0; i < records.Length; i++)
+            {
+                records[i].Name = mr.ReadBlobIndex();
+                records[i].HashAlgorithm = mr.ReadGuidIndex();
+                records[i].Hash = mr.ReadBlobIndex();
+                records[i].Language = mr.ReadGuidIndex();
+            }
         }
 
         internal override void Write(MetadataWriter mw)
@@ -2782,7 +2827,11 @@ namespace Managed.Reflection.Metadata
 
         internal override void Read(MetadataReader mr)
         {
-            throw new NotSupportedException();
+            for (int i = 0; i < records.Length; i++)
+            {
+                records[i].Document = mr.ReadDocument();
+                records[i].SequencePoints = mr.ReadBlobIndex();
+            }
         }
 
         internal override void Write(MetadataWriter mw)
@@ -2798,6 +2847,170 @@ namespace Managed.Reflection.Metadata
         {
             return rsc
                 .WriteDocument()
+                .WriteBlobIndex()
+                .Value;
+        }
+    }
+
+    sealed class LocalScopeTable : Table<LocalScopeTable.Record>
+    {
+        internal const int Index = 0x32;
+
+        internal struct Record
+        {
+            internal int Method;        // -> MethodDef row id
+            internal int ImportScope;   // -> ImportScope row id
+            internal int VariableList;  // -> LocalVariable row id
+            internal int ConstantList;  // -> LocalConstant row id
+            internal int StartOffset;
+            internal int Length;
+        }
+
+        internal override void Read(MetadataReader mr)
+        {
+            for (int i = 0; i < records.Length; i++)
+            {
+                records[i].Method = mr.ReadMethodDef();
+                records[i].ImportScope = mr.ReadImportScope();
+                records[i].VariableList = mr.ReadLocalVariable();
+                records[i].ConstantList = mr.ReadLocalConstant();
+                records[i].StartOffset = mr.ReadInt32();
+                records[i].Length = mr.ReadInt32();
+            }
+        }
+
+        internal override void Write(MetadataWriter mw)
+        {
+            for (int i = 0; i < rowCount; i++)
+            {
+                mw.WriteMethodDef(records[i].Method);
+                mw.WriteImportScope(records[i].ImportScope);
+                mw.WriteLocalVariable(records[i].VariableList);
+                mw.WriteLocalConstant(records[i].ConstantList);
+                mw.Write(records[i].StartOffset);
+                mw.Write(records[i].Length);
+            }
+        }
+
+        protected override int GetRowSize(RowSizeCalc rsc)
+        {
+            return rsc
+                .WriteMethodDef()
+                .WriteImportScope()
+                .WriteLocalVariable()
+                .WriteLocalConstant()
+                .AddFixed(4)
+                .AddFixed(4)
+                .Value;
+        }
+    }
+
+    sealed class LocalVariableTable : Table<LocalVariableTable.Record>
+    {
+        internal const int Index = 0x33;
+
+        internal struct Record
+        {
+            internal short Attributes;
+            internal short Index;
+            internal int Name;          // -> StringHeap
+        }
+
+        internal override void Read(MetadataReader mr)
+        {
+            for (int i = 0; i < records.Length; i++)
+            {
+                records[i].Attributes = mr.ReadInt16();
+                records[i].Index = mr.ReadInt16();
+                records[i].Name = mr.ReadStringIndex();
+            }
+        }
+
+        internal override void Write(MetadataWriter mw)
+        {
+            for (int i = 0; i < rowCount; i++)
+            {
+                mw.Write(records[i].Attributes);
+                mw.Write(records[i].Index);
+                mw.WriteStringIndex(records[i].Name);
+            }
+        }
+
+        protected override int GetRowSize(RowSizeCalc rsc)
+        {
+            return rsc
+                .AddFixed(2)
+                .AddFixed(2)
+                .WriteStringIndex()
+                .Value;
+        }
+    }
+
+    sealed class LocalConstantTable : Table<LocalConstantTable.Record>
+    {
+        internal const int Index = 0x34;
+
+        internal struct Record
+        {
+            internal int Name;          // -> StringHeap
+            internal int Signature;     // -> BlobHeap
+        }
+
+        internal override void Read(MetadataReader mr)
+        {
+            for (int i = 0; i < records.Length; i++)
+            {
+                records[i].Name = mr.ReadStringIndex();
+                records[i].Signature = mr.ReadBlobIndex();
+            }
+        }
+
+        internal override void Write(MetadataWriter mw)
+        {
+            for (int i = 0; i < rowCount; i++)
+            {
+                mw.WriteStringIndex(records[i].Name);
+                mw.WriteBlobIndex(records[i].Signature);
+            }
+        }
+
+        protected override int GetRowSize(RowSizeCalc rsc)
+        {
+            return rsc
+                .WriteStringIndex()
+                .WriteBlobIndex()
+                .Value;
+        }
+    }
+
+    sealed class ImportScopeTable : Table<ImportScopeTable.Record>
+    {
+        internal const int Index = 0x35;
+
+        internal struct Record
+        {
+            internal int Parent;        // ImportScope row id
+            internal int Imports;       // -> BlobHeap
+        }
+
+        internal override void Read(MetadataReader mr)
+        {
+            throw new NotSupportedException();
+        }
+
+        internal override void Write(MetadataWriter mw)
+        {
+            for (int i = 0; i < rowCount; i++)
+            {
+                mw.WriteImportScope(records[i].Parent);
+                mw.WriteBlobIndex(records[i].Imports);
+            }
+        }
+
+        protected override int GetRowSize(RowSizeCalc rsc)
+        {
+            return rsc
+                .WriteImportScope()
                 .WriteBlobIndex()
                 .Value;
         }

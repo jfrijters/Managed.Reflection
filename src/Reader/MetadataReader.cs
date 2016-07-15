@@ -399,5 +399,25 @@ namespace Managed.Reflection.Reader
         {
             return ReadIndex(bigModuleRef) | (ModuleRefTable.Index << 24);
         }
+
+        internal int ReadDocument()
+        {
+            return ReadIndex(bigDocument);
+        }
+
+        internal int ReadImportScope()
+        {
+            return ReadIndex(bigImportScope);
+        }
+
+        internal int ReadLocalVariable()
+        {
+            return ReadIndex(bigLocalVariable);
+        }
+
+        internal int ReadLocalConstant()
+        {
+            return ReadIndex(bigLocalConstant);
+        }
     }
 }
