@@ -60,6 +60,8 @@ namespace Managed.Reflection.Writer
         }
 
         protected abstract void WriteImpl(MetadataWriter mw);
+
+        internal abstract string Name { get; }
     }
 
     abstract class SimpleHeap : Heap
@@ -157,6 +159,11 @@ namespace Managed.Reflection.Writer
             // note that we pad one extra (unexplained) byte
             return len + 1;
         }
+
+        internal override string Name
+        {
+            get { return "#~"; }
+        }
     }
 
     sealed class StringHeap : SimpleHeap
@@ -208,6 +215,11 @@ namespace Managed.Reflection.Writer
                 mw.Write(System.Text.Encoding.UTF8.GetBytes(str));
                 mw.Write((byte)0);
             }
+        }
+
+        internal override string Name
+        {
+            get { return "#Strings"; }
         }
     }
 
@@ -276,6 +288,11 @@ namespace Managed.Reflection.Writer
                 mw.Write(hasSpecialChars);
             }
         }
+
+        internal override string Name
+        {
+            get { return "#US"; }
+        }
     }
 
     sealed class GuidHeap : SimpleHeap
@@ -304,6 +321,11 @@ namespace Managed.Reflection.Writer
             {
                 mw.Write(guid.ToByteArray());
             }
+        }
+
+        internal override string Name
+        {
+            get { return "#GUID"; }
         }
     }
 
@@ -388,6 +410,11 @@ namespace Managed.Reflection.Writer
         internal Managed.Reflection.Reader.ByteReader GetBlob(int blobIndex)
         {
             return buf.GetBlob(blobIndex);
+        }
+
+        internal override string Name
+        {
+            get { return "#Blob"; }
         }
     }
 }

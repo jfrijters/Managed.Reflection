@@ -289,8 +289,6 @@ namespace Managed.Reflection.Impl
 
             using (var fs = System.IO.File.Create(GetFileName()))
             {
-                // TODO do we need this?
-                uint guidOffset;
                 var tablesForRowCountOnly = moduleBuilder.GetTables();
                 var tables = new Table[64];
                 tables[DocumentTable.Index] = Document;
@@ -305,8 +303,29 @@ namespace Managed.Reflection.Impl
                         tablesForRowCountOnly[i] = tables[i];
                     }
                 }
-                WriteMetadata(new PortablePdbMetadataWriter(fs, tables, tablesForRowCountOnly, Strings.IsBig, Guids.IsBig, Blobs.IsBig), out guidOffset);
+                var mw = new PortablePdbMetadataWriter(fs, tables, tablesForRowCountOnly, Strings.IsBig, Guids.IsBig, Blobs.IsBig);
+                Tables.Freeze(mw);
+                var pdb = new PdbHeap(guid, timestamp, moduleBuilder.GetTables(), GetEntryPointToken());
+                mw.WriteMetadata(ImageRuntimeVersion, pdb, Tables, Strings, UserStrings, Guids, Blobs);
             }
+        }
+
+        private int GetEntryPointToken()
+        {
+            var entryPointToken = 0;
+            if (userEntryPointToken != 0)
+            {
+                entryPointToken = userEntryPointToken;
+            }
+            else if (moduleBuilder.Assembly?.EntryPoint?.Module == moduleBuilder)
+            {
+                entryPointToken = -moduleBuilder.Assembly.EntryPoint.MetadataToken | 0x06000000;
+            }
+            if (entryPointToken != 0)
+            {
+                entryPointToken = tokenMap[entryPointToken];
+            }
+            return entryPointToken;
         }
 
         private void CreateLocalScopeAndLocalVariables(LocalScopeTable localScope, LocalVariableTable localVariable, ImportScopeTable importScope)
@@ -368,120 +387,6 @@ namespace Managed.Reflection.Impl
                 table.records[index].SequencePoints = method.SequencePoints;
             }
             return table;
-        }
-
-        private int GetHeaderLength()
-        {
-            return
-                4 + // Signature
-                2 + // MajorVersion
-                2 + // MinorVersion
-                4 + // Reserved
-                4 + // ImageRuntimeVersion Length
-                StringToPaddedUTF8Length(ImageRuntimeVersion) +
-                2 + // Flags
-                2 + // Streams
-                4 + // #Pdb Offset
-                4 + // #Pdb Size
-                8 + // StringToPaddedUTF8Length("#Pdb")
-                4 + // #~ Offset
-                4 + // #~ Size
-                4 + // StringToPaddedUTF8Length("#~")
-                4 + // #Strings Offset
-                4 + // #Strings Size
-                12 + // StringToPaddedUTF8Length("#Strings")
-                4 + // #US Offset
-                4 + // #US Size
-                4 + // StringToPaddedUTF8Length("#US")
-                4 + // #GUID Offset
-                4 + // #GUID Size
-                8 + // StringToPaddedUTF8Length("#GUID")
-                4 + // #Blob Offset
-                4 + // #Blob Size
-                8   // StringToPaddedUTF8Length("#Blob")
-                ;
-        }
-
-        internal void WriteMetadata(MetadataWriter mw, out uint guidHeapOffset)
-        {
-            var entryPointToken = 0;
-            if (userEntryPointToken != 0)
-            {
-                entryPointToken = userEntryPointToken;
-            }
-            else if (moduleBuilder.Assembly?.EntryPoint?.Module == moduleBuilder)
-            {
-                entryPointToken = -moduleBuilder.Assembly.EntryPoint.MetadataToken | 0x06000000;
-            }
-            if (entryPointToken != 0)
-            {
-                entryPointToken = tokenMap[entryPointToken];
-            }
-            Tables.Freeze(mw);
-            var pdb = new PdbHeap(guid, timestamp, moduleBuilder.GetTables(), entryPointToken);
-
-            mw.Write(0x424A5342);           // Signature ("BSJB")
-            mw.Write((ushort)1);            // MajorVersion
-            mw.Write((ushort)1);            // MinorVersion
-            mw.Write(0);                    // Reserved
-            byte[] version = StringToPaddedUTF8(ImageRuntimeVersion);
-            mw.Write(version.Length);       // Length
-            mw.Write(version);
-            mw.Write((ushort)0);            // Flags
-            mw.Write((ushort)6);            // Streams
-
-            int offset = GetHeaderLength();
-
-            // Streams
-            mw.Write(offset);               // Offset
-            mw.Write(pdb.Length);           // Size
-            mw.Write(StringToPaddedUTF8("#Pdb"));
-            offset += pdb.Length;
-
-            mw.Write(offset);               // Offset
-            mw.Write(Tables.Length);        // Size
-            mw.Write(StringToPaddedUTF8("#~"));
-            offset += Tables.Length;
-
-            mw.Write(offset);               // Offset
-            mw.Write(Strings.Length);       // Size
-            mw.Write(StringToPaddedUTF8("#Strings"));
-            offset += Strings.Length;
-
-            mw.Write(offset);               // Offset
-            mw.Write(UserStrings.Length);   // Size
-            mw.Write(StringToPaddedUTF8("#US"));
-            offset += UserStrings.Length;
-
-            mw.Write(offset);               // Offset
-            mw.Write(Guids.Length);         // Size
-            mw.Write(StringToPaddedUTF8("#GUID"));
-            offset += Guids.Length;
-
-            mw.Write(offset);               // Offset
-            mw.Write(Blobs.Length);         // Size
-            mw.Write(StringToPaddedUTF8("#Blob"));
-
-            pdb.Write(mw);
-            Tables.Write(mw);
-            Strings.Write(mw);
-            UserStrings.Write(mw);
-            guidHeapOffset = mw.Position;
-            Guids.Write(mw);
-            Blobs.Write(mw);
-        }
-
-        // TODO move this to MetadataWriter
-        private static int StringToPaddedUTF8Length(string str)
-        {
-            return (System.Text.Encoding.UTF8.GetByteCount(str) + 4) & ~3;
-        }
-
-        private static byte[] StringToPaddedUTF8(string str)
-        {
-            byte[] buf = new byte[(System.Text.Encoding.UTF8.GetByteCount(str) + 4) & ~3];
-            System.Text.Encoding.UTF8.GetBytes(str, 0, str.Length, buf, 0);
-            return buf;
         }
 
         internal void SetCheckSum(int rId, Guid algorithmId, byte[] checkSum)
@@ -556,6 +461,11 @@ namespace Managed.Reflection.Impl
                     mw.Write(table.RowCount);
                 }
             }
+        }
+
+        internal override string Name
+        {
+            get { return "#Pdb"; }
         }
     }
 

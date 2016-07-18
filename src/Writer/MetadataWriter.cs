@@ -47,6 +47,67 @@ namespace Managed.Reflection.Writer
             get { return (uint)stream.Position; }
         }
 
+        internal void WriteMetadata(string version, params Heap[] streams)
+        {
+            Write(0x424A5342);              // Signature ("BSJB")
+            Write((ushort)1);               // MajorVersion
+            Write((ushort)1);               // MinorVersion
+            Write(0);                       // Reserved
+            var v = StringToPaddedUTF8(version);
+            Write(v.Length);                // Length
+            Write(v);
+            Write((ushort)0);               // Flags
+            Write((ushort)streams.Length);  // Streams
+
+            int offset = GetHeaderLength(version, streams);
+
+            // Streams
+            foreach (var stream in streams)
+            {
+                Write(offset);               // Offset
+                Write(stream.Length);        // Size
+                Write(StringToPaddedUTF8(stream.Name));
+                offset += stream.Length;
+            }
+
+            foreach (var stream in streams)
+            {
+                stream.Write(this);
+            }
+        }
+
+        private static int GetHeaderLength(string version, Heap[] streams)
+        {
+            var length =
+                4 + // Signature
+                2 + // MajorVersion
+                2 + // MinorVersion
+                4 + // Reserved
+                4 + // Version Length
+                StringToPaddedUTF8Length(version) +
+                2 + // Flags
+                2;  // Streams
+            foreach (var stream in streams)
+            {
+                length += 4;    // Offset
+                length += 4;    // Size
+                length += StringToPaddedUTF8Length(stream.Name);
+            }
+            return length;
+        }
+
+        private static int StringToPaddedUTF8Length(string str)
+        {
+            return (System.Text.Encoding.UTF8.GetByteCount(str) + 4) & ~3;
+        }
+
+        private static byte[] StringToPaddedUTF8(string str)
+        {
+            byte[] buf = new byte[(System.Text.Encoding.UTF8.GetByteCount(str) + 4) & ~3];
+            System.Text.Encoding.UTF8.GetBytes(str, 0, str.Length, buf, 0);
+            return buf;
+        }
+
         internal void Write(ByteBuffer bb)
         {
             bb.WriteTo(stream);
