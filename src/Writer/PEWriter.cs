@@ -80,13 +80,14 @@ namespace Managed.Reflection.Writer
             });
         }
 
-        internal void WritePEHeaders()
+        internal long WritePEHeaders()
         {
             bw.Write(hdr.Signature);
 
             // IMAGE_FILE_HEADER
             bw.Write(hdr.FileHeader.Machine);
             bw.Write(hdr.FileHeader.NumberOfSections);
+            var timeDateStampPosition = bw.BaseStream.Position;
             bw.Write(hdr.FileHeader.TimeDateStamp);
             bw.Write(hdr.FileHeader.PointerToSymbolTable);
             bw.Write(hdr.FileHeader.NumberOfSymbols);
@@ -95,6 +96,8 @@ namespace Managed.Reflection.Writer
 
             // IMAGE_OPTIONAL_HEADER
             hdr.OptionalHeader.Write(bw);
+
+            return timeDateStampPosition;
         }
 
         internal void WriteSectionHeader(SectionHeader sectionHeader)

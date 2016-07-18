@@ -293,7 +293,7 @@ namespace Managed.Reflection.Writer
                 writer.Headers.OptionalHeader.AddressOfEntryPoint = code.StartupStubRVA + writer.Thumb;
             }
 
-            writer.WritePEHeaders();
+            var timeDateStampPosition = writer.WritePEHeaders();
             writer.WriteSectionHeader(text);
             if (sdata.SizeOfRawData != 0)
             {
@@ -333,13 +333,25 @@ namespace Managed.Reflection.Writer
             // file alignment
             stream.SetLength(reloc.PointerToRawData + reloc.SizeOfRawData);
 
-            // if we don't have a guid, generate one based on the contents of the assembly
-            if (moduleBuilder.universe.Deterministic && moduleBuilder.GetModuleVersionIdOrEmpty() == Guid.Empty)
+            // if we don't have a guid or timestamp, generate one based on the contents of the assembly
+            if (moduleBuilder.universe.Deterministic && (moduleBuilder.GetModuleVersionIdOrEmpty() == Guid.Empty || moduleBuilder.GetTimeDateStamp() == 0))
             {
-                Guid guid = GenerateModuleVersionId(stream);
-                stream.Position = guidHeapOffset + (moduleVersionIdIndex - 1) * 16;
-                stream.Write(guid.ToByteArray(), 0, 16);
-                moduleBuilder.__SetModuleVersionId(guid);
+                uint timestamp;
+                Guid guid = GenerateModuleVersionIdAndPseudoTimestamp(stream, out timestamp);
+                if (moduleBuilder.GetModuleVersionIdOrEmpty() == Guid.Empty)
+                {
+                    // patch the MVID in the GUID stream
+                    stream.Position = guidHeapOffset + (moduleVersionIdIndex - 1) * 16;
+                    stream.Write(guid.ToByteArray(), 0, 16);
+                    moduleBuilder.__SetModuleVersionId(guid);
+                }
+                if (moduleBuilder.GetTimeDateStamp() == 0)
+                {
+                    // patch the TimeDateStamp in IMAGE_FILE_HEADER
+                    stream.Position = timeDateStampPosition;
+                    stream.Write(BitConverter.GetBytes(timestamp), 0, 4);
+                    moduleBuilder.SetTimeDateStamp(timestamp);
+                }
             }
 
             // do the strong naming
@@ -421,7 +433,7 @@ namespace Managed.Reflection.Writer
             bb.WriteTo(stream);
         }
 
-        private static Guid GenerateModuleVersionId(Stream stream)
+        private static Guid GenerateModuleVersionIdAndPseudoTimestamp(Stream stream, out uint pseudoTimestamp)
         {
             byte[] hash;
             using (SHA1 sha1 = SHA1.Create())
@@ -436,6 +448,7 @@ namespace Managed.Reflection.Writer
             bytes[7] |= 0x40;
             bytes[8] &= 0x3F;
             bytes[8] |= 0x80;
+            pseudoTimestamp = (uint)BitConverter.ToInt32(hash, 16) | 0x80000000;
             return new Guid(bytes);
         }
     }
