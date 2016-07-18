@@ -1307,6 +1307,10 @@ namespace Managed.Reflection.Metadata
                     return (token & 0xFFFFFF) << 5 | 18;
                 case GenericParamTable.Index:
                     return (token & 0xFFFFFF) << 5 | 19;
+                case GenericParamConstraintTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 20;
+                case MethodSpecTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 21;
                 default:
                     throw new InvalidOperationException();
             }

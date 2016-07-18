@@ -80,7 +80,7 @@ namespace Managed.Reflection.Metadata
             this.bigHasCustomAttribute = IsBig(tables, 5, MethodDefTable.Index, FieldTable.Index, TypeRefTable.Index, TypeDefTable.Index, ParamTable.Index,
                 InterfaceImplTable.Index, MemberRefTable.Index, ModuleTable.Index, /*PermissionTable.Index,*/ PropertyTable.Index, EventTable.Index,
                 StandAloneSigTable.Index, ModuleRefTable.Index, TypeSpecTable.Index, AssemblyTable.Index, AssemblyRefTable.Index, FileTable.Index,
-                ExportedTypeTable.Index, ManifestResourceTable.Index);
+                ExportedTypeTable.Index, ManifestResourceTable.Index, GenericParamTable.Index, GenericParamConstraintTable.Index, MethodSpecTable.Index);
             this.bigCustomAttributeType = IsBig(tables, 3, MethodDefTable.Index, MemberRefTable.Index);
             this.bigHasConstant = IsBig(tables, 2, FieldTable.Index, ParamTable.Index, PropertyTable.Index);
             this.bigHasSemantics = IsBig(tables, 1, EventTable.Index, PropertyTable.Index);
