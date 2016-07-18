@@ -36,7 +36,7 @@ namespace Managed.Reflection.Impl
         private const string ImageRuntimeVersion = "PDB v1.0";
         private readonly ModuleBuilder moduleBuilder;
         private readonly string fileName;
-        private readonly Guid guid = Guid.NewGuid();
+        private Guid guid;
         private uint timestamp;
         private readonly TableHeap Tables = new TableHeap();
         private readonly StringHeap Strings = new StringHeap();
@@ -94,7 +94,7 @@ namespace Managed.Reflection.Impl
 
         public bool IsDeterministic
         {
-            get { return false; }
+            get { return moduleBuilder.universe.Deterministic; }
         }
 
         public void DefineLocalVariable2(string name, FieldAttributes attributes, int signature, SymAddressKind addrKind, int addr1, int addr2, int addr3, int startOffset, int endOffset)
@@ -104,8 +104,31 @@ namespace Managed.Reflection.Impl
             scope.VariableList.Add(new Variable { Name = name, Index = addr1 });
         }
 
-        public byte[] GetDebugInfo(ref IMAGE_DEBUG_DIRECTORY idd)
+        public byte[] GetDebugInfo(ref IMAGE_DEBUG_DIRECTORY idd, bool deterministicPatchupPass)
         {
+            if (deterministicPatchupPass)
+            {
+                using (var sha1 = System.Security.Cryptography.SHA1.Create())
+                {
+                    var buf = new byte[20];
+                    Buffer.BlockCopy(moduleBuilder.ModuleVersionId.ToByteArray(), 0, buf, 0, 16);
+                    Buffer.BlockCopy(BitConverter.GetBytes(moduleBuilder.GetTimeDateStamp()), 0, buf, 16, 4);
+                    var hash = sha1.ComputeHash(buf);
+                    idd.TimeDateStamp = (uint)BitConverter.ToInt32(hash, 16) | 0x80000000;
+                    Array.Resize(ref hash, 16);
+                    // set GUID type to "version 4" (random)
+                    hash[7] &= 0x0F;
+                    hash[7] |= 0x40;
+                    hash[8] &= 0x3F;
+                    hash[8] |= 0x80;
+                    guid = new Guid(hash);
+                }
+            }
+            else if (!IsDeterministic)
+            {
+                guid = Guid.NewGuid();
+            }
+
             // From Roslyn's https://github.com/dotnet/roslyn/blob/86c5958add9e977454f6b052bb190f2cb1754d80/src/Compilers/Core/Portable/NativePdbWriter/PdbWriter.cs
             // Data has the following structure:
             // struct RSDSI

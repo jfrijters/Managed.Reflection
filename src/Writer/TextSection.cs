@@ -373,7 +373,7 @@ namespace Managed.Reflection.Writer
 
             // Debug Directory
             AssertRVA(mw, DebugDirectoryRVA);
-            WriteDebugDirectory(mw);
+            WriteDebugDirectory(mw, false);
 
             // alignment padding
             for (int i = (int)(ExportDirectoryRVA - (DebugDirectoryRVA + DebugDirectoryLength + DebugDirectoryContentsLength)); i > 0; i--)
@@ -468,7 +468,7 @@ namespace Managed.Reflection.Writer
             }
         }
 
-        private void WriteDebugDirectory(MetadataWriter mw)
+        private void WriteDebugDirectory(MetadataWriter mw, bool deterministicPatchupPass)
         {
             if (DebugDirectoryLength != 0)
             {
@@ -478,7 +478,7 @@ namespace Managed.Reflection.Writer
                     var pdb = new IMAGE_DEBUG_DIRECTORY();
                     pdb.Characteristics = 0;
                     pdb.TimeDateStamp = peWriter.Headers.FileHeader.TimeDateStamp;
-                    buf = moduleBuilder.symbolWriter.GetDebugInfo(ref pdb);
+                    buf = moduleBuilder.symbolWriter.GetDebugInfo(ref pdb, deterministicPatchupPass);
                     pdb.PointerToRawData = (DebugDirectoryRVA - BaseRVA) + DebugDirectoryLength + PointerToRawData;
                     pdb.AddressOfRawData = DebugDirectoryRVA + DebugDirectoryLength;
                     pdb.Write(mw);
@@ -494,6 +494,12 @@ namespace Managed.Reflection.Writer
                     mw.Write(buf);
                 }
             }
+        }
+
+        internal void PatchDebugDirectory(MetadataWriter mw)
+        {
+            AssertRVA(mw, DebugDirectoryRVA);
+            WriteDebugDirectory(mw, true);
         }
 
         private sealed class ExportTables

@@ -53,7 +53,7 @@ namespace Managed.Reflection.Impl
 
     interface ISymbolWriterImpl
     {
-        byte[] GetDebugInfo(ref IMAGE_DEBUG_DIRECTORY idd);
+        byte[] GetDebugInfo(ref IMAGE_DEBUG_DIRECTORY idd, bool deterministicPatchupPass);
         int GetDebugInfoLength();
         void RemapToken(int oldToken, int newToken);
         void DefineLocalVariable2(string name, FieldAttributes attributes, int signature, SymAddressKind addrKind, int addr1, int addr2, int addr3, int startOffset, int endOffset);

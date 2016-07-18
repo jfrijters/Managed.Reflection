@@ -334,7 +334,8 @@ namespace Managed.Reflection.Writer
             stream.SetLength(reloc.PointerToRawData + reloc.SizeOfRawData);
 
             // if we don't have a guid or timestamp, generate one based on the contents of the assembly
-            if (moduleBuilder.universe.Deterministic && (moduleBuilder.GetModuleVersionIdOrEmpty() == Guid.Empty || moduleBuilder.GetTimeDateStamp() == 0))
+            if (moduleBuilder.universe.Deterministic
+                && (moduleBuilder.GetModuleVersionIdOrEmpty() == Guid.Empty || moduleBuilder.GetTimeDateStamp() == 0 || moduleBuilder.symbolWriter != null))
             {
                 uint timestamp;
                 Guid guid = GenerateModuleVersionIdAndPseudoTimestamp(stream, out timestamp);
@@ -351,6 +352,11 @@ namespace Managed.Reflection.Writer
                     stream.Position = timeDateStampPosition;
                     stream.Write(BitConverter.GetBytes(timestamp), 0, 4);
                     moduleBuilder.SetTimeDateStamp(timestamp);
+                }
+                if (moduleBuilder.symbolWriter != null)
+                {
+                    stream.Position = code.DebugDirectoryRVA - code.BaseRVA + code.PointerToRawData;
+                    code.PatchDebugDirectory(mw);
                 }
             }
 
