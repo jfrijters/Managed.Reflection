@@ -62,16 +62,6 @@ namespace Managed.Reflection.Impl
         {
             return new PortablePdbWriter(moduleBuilder);
         }
-
-        internal static byte[] GetDebugInfo(ISymbolWriterImpl writer, ref IMAGE_DEBUG_DIRECTORY idd)
-        {
-            return writer.GetDebugInfo(ref idd);
-        }
-
-        internal static void RemapToken(ISymbolWriterImpl writer, int oldToken, int newToken)
-        {
-            writer.RemapToken(oldToken, newToken);
-        }
     }
 }
 

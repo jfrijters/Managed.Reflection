@@ -977,7 +977,7 @@ namespace Managed.Reflection.Emit
                 // so we copy the type from the newToken, because our pseudo tokens don't have a type.
                 // (see MethodToken.SymbolToken)
                 int oldToken = (i + 1) | (newToken & ~0xFFFFFF);
-                SymbolSupport.RemapToken(symbolWriter, oldToken, newToken);
+                symbolWriter.RemapToken(oldToken, newToken);
             }
         }
 

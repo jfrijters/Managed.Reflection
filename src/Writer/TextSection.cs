@@ -175,7 +175,7 @@ namespace Managed.Reflection.Writer
                 if (moduleBuilder.symbolWriter != null)
                 {
                     IMAGE_DEBUG_DIRECTORY idd = new IMAGE_DEBUG_DIRECTORY();
-                    return (uint)SymbolSupport.GetDebugInfo(moduleBuilder.symbolWriter, ref idd).Length;
+                    return (uint)moduleBuilder.symbolWriter.GetDebugInfo(ref idd).Length;
                 }
                 return 0;
             }
@@ -471,7 +471,7 @@ namespace Managed.Reflection.Writer
                 IMAGE_DEBUG_DIRECTORY idd = new IMAGE_DEBUG_DIRECTORY();
                 idd.Characteristics = 0;
                 idd.TimeDateStamp = peWriter.Headers.FileHeader.TimeDateStamp;
-                byte[] buf = SymbolSupport.GetDebugInfo(moduleBuilder.symbolWriter, ref idd);
+                byte[] buf = moduleBuilder.symbolWriter.GetDebugInfo(ref idd);
                 idd.PointerToRawData = (DebugDirectoryRVA - BaseRVA) + DebugDirectoryLength + PointerToRawData;
                 idd.AddressOfRawData = DebugDirectoryRVA + DebugDirectoryLength;
                 mw.Write(idd.Characteristics);
