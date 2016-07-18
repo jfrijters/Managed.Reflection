@@ -88,7 +88,7 @@ namespace Managed.Reflection.Impl
         internal PortablePdbWriter(ModuleBuilder moduleBuilder)
         {
             this.moduleBuilder = moduleBuilder;
-            fileName = System.IO.Path.ChangeExtension(moduleBuilder.FullyQualifiedName, ".pdb");
+            fileName = System.IO.Path.ChangeExtension(IsDeterministic ? moduleBuilder.Name : moduleBuilder.FullyQualifiedName, ".pdb");
         }
 
         public bool IsDeterministic
