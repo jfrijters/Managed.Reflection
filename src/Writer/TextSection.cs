@@ -160,11 +160,16 @@ namespace Managed.Reflection.Writer
         {
             get
             {
+                var length = 0U;
                 if (DebugDirectoryContentsLength != 0)
                 {
-                    return 28;
+                    length += 28;
                 }
-                return 0;
+                if (moduleBuilder.universe.Deterministic)
+                {
+                    length += 28;
+                }
+                return length;
             }
         }
 
@@ -467,21 +472,27 @@ namespace Managed.Reflection.Writer
         {
             if (DebugDirectoryLength != 0)
             {
-                IMAGE_DEBUG_DIRECTORY idd = new IMAGE_DEBUG_DIRECTORY();
-                idd.Characteristics = 0;
-                idd.TimeDateStamp = peWriter.Headers.FileHeader.TimeDateStamp;
-                byte[] buf = moduleBuilder.symbolWriter.GetDebugInfo(ref idd);
-                idd.PointerToRawData = (DebugDirectoryRVA - BaseRVA) + DebugDirectoryLength + PointerToRawData;
-                idd.AddressOfRawData = DebugDirectoryRVA + DebugDirectoryLength;
-                mw.Write(idd.Characteristics);
-                mw.Write(idd.TimeDateStamp);
-                mw.Write(idd.MajorVersion);
-                mw.Write(idd.MinorVersion);
-                mw.Write(idd.Type);
-                mw.Write(idd.SizeOfData);
-                mw.Write(idd.AddressOfRawData);
-                mw.Write(idd.PointerToRawData);
-                mw.Write(buf);
+                byte[] buf = null;
+                if (moduleBuilder.symbolWriter != null)
+                {
+                    var pdb = new IMAGE_DEBUG_DIRECTORY();
+                    pdb.Characteristics = 0;
+                    pdb.TimeDateStamp = peWriter.Headers.FileHeader.TimeDateStamp;
+                    buf = moduleBuilder.symbolWriter.GetDebugInfo(ref pdb);
+                    pdb.PointerToRawData = (DebugDirectoryRVA - BaseRVA) + DebugDirectoryLength + PointerToRawData;
+                    pdb.AddressOfRawData = DebugDirectoryRVA + DebugDirectoryLength;
+                    pdb.Write(mw);
+                }
+                if (moduleBuilder.universe.Deterministic)
+                {
+                    var repro = new IMAGE_DEBUG_DIRECTORY();
+                    repro.Type = 16;    // IMAGE_DEBUG_TYPE_REPRO
+                    repro.Write(mw);
+                }
+                if (buf != null)
+                {
+                    mw.Write(buf);
+                }
             }
         }
 

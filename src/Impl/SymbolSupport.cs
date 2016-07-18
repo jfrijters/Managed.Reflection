@@ -37,6 +37,18 @@ namespace Managed.Reflection.Impl
         public uint SizeOfData;
         public uint AddressOfRawData;
         public uint PointerToRawData;
+
+        internal void Write(Writer.MetadataWriter mw)
+        {
+            mw.Write(Characteristics);
+            mw.Write(TimeDateStamp);
+            mw.Write(MajorVersion);
+            mw.Write(MinorVersion);
+            mw.Write(Type);
+            mw.Write(SizeOfData);
+            mw.Write(AddressOfRawData);
+            mw.Write(PointerToRawData);
+        }
     }
 
     interface ISymbolWriterImpl
