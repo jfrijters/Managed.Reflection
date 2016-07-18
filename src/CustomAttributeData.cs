@@ -544,7 +544,6 @@ namespace Managed.Reflection
             }
         }
 
-        // .NET 4.5 API
         public Type AttributeType
         {
             get { return Constructor.DeclaringType; }

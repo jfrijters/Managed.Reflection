@@ -707,7 +707,6 @@ namespace Managed.Reflection.Emit
             }
         }
 
-        // new in .NET 4.5
         public MethodToken GetMethodToken(MethodInfo method, IEnumerable<Type> optionalParameterTypes)
         {
             return __GetMethodToken(method, Util.ToArray(optionalParameterTypes), null);
@@ -759,7 +758,6 @@ namespace Managed.Reflection.Emit
             return GetMethodToken(constructor.GetMethodInfo());
         }
 
-        // new in .NET 4.5
         public MethodToken GetConstructorToken(ConstructorInfo constructor, IEnumerable<Type> optionalParameterTypes)
         {
             return GetMethodToken(constructor.GetMethodInfo(), optionalParameterTypes);
