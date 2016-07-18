@@ -317,11 +317,14 @@ namespace Managed.Reflection.Writer
 
         protected override void WriteImpl(MetadataWriter mw)
         {
+            Position = mw.Position;
             foreach (Guid guid in list)
             {
                 mw.Write(guid.ToByteArray());
             }
         }
+
+        internal uint Position { get; private set; }
 
         internal override string Name
         {
@@ -394,17 +397,12 @@ namespace Managed.Reflection.Writer
 
         protected override int GetLength()
         {
-            return buf.Position;
+            return buf.Position == 1 ? 0 : buf.Position;
         }
 
         protected override void WriteImpl(MetadataWriter mw)
         {
             mw.Write(buf);
-        }
-
-        internal bool IsEmpty
-        {
-            get { return buf.Position == 1; }
         }
 
         internal Managed.Reflection.Reader.ByteReader GetBlob(int blobIndex)

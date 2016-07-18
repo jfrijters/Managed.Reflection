@@ -1071,116 +1071,13 @@ namespace Managed.Reflection.Emit
             }
         }
 
-        private int GetHeaderLength()
-        {
-            return
-                4 + // Signature
-                2 + // MajorVersion
-                2 + // MinorVersion
-                4 + // Reserved
-                4 + // ImageRuntimeVersion Length
-                StringToPaddedUTF8Length(asm.ImageRuntimeVersion) +
-                2 + // Flags
-                2 + // Streams
-                4 + // #~ Offset
-                4 + // #~ Size
-                4 + // StringToPaddedUTF8Length("#~")
-                4 + // #Strings Offset
-                4 + // #Strings Size
-                12 + // StringToPaddedUTF8Length("#Strings")
-                4 + // #US Offset
-                4 + // #US Size
-                4 + // StringToPaddedUTF8Length("#US")
-                4 + // #GUID Offset
-                4 + // #GUID Size
-                8 + // StringToPaddedUTF8Length("#GUID")
-                (Blobs.IsEmpty ? 0 :
-                (
-                4 + // #Blob Offset
-                4 + // #Blob Size
-                8   // StringToPaddedUTF8Length("#Blob")
-                ));
-        }
-
         internal int MetadataLength
         {
             get
             {
-                return GetHeaderLength() + (Blobs.IsEmpty ? 0 : Blobs.Length) + Tables.Length + Strings.Length + UserStrings.Length + Guids.Length;
+                return MetadataWriter.GetHeaderLength(asm.ImageRuntimeVersion, Tables, Strings, UserStrings, Guids, Blobs)
+                    + Tables.Length + Strings.Length + UserStrings.Length + Guids.Length + Blobs.Length;
             }
-        }
-
-        internal void WriteMetadata(MetadataWriter mw, out uint guidHeapOffset)
-        {
-            mw.Write(0x424A5342);           // Signature ("BSJB")
-            mw.Write((ushort)1);            // MajorVersion
-            mw.Write((ushort)1);            // MinorVersion
-            mw.Write(0);                    // Reserved
-            byte[] version = StringToPaddedUTF8(asm.ImageRuntimeVersion);
-            mw.Write(version.Length);       // Length
-            mw.Write(version);
-            mw.Write((ushort)0);            // Flags
-                                            // #Blob is the only optional heap
-            if (Blobs.IsEmpty)
-            {
-                mw.Write((ushort)4);        // Streams
-            }
-            else
-            {
-                mw.Write((ushort)5);        // Streams
-            }
-
-            int offset = GetHeaderLength();
-
-            // Streams
-            mw.Write(offset);               // Offset
-            mw.Write(Tables.Length);        // Size
-            mw.Write(StringToPaddedUTF8("#~"));
-            offset += Tables.Length;
-
-            mw.Write(offset);               // Offset
-            mw.Write(Strings.Length);       // Size
-            mw.Write(StringToPaddedUTF8("#Strings"));
-            offset += Strings.Length;
-
-            mw.Write(offset);               // Offset
-            mw.Write(UserStrings.Length);   // Size
-            mw.Write(StringToPaddedUTF8("#US"));
-            offset += UserStrings.Length;
-
-            mw.Write(offset);               // Offset
-            mw.Write(Guids.Length);         // Size
-            mw.Write(StringToPaddedUTF8("#GUID"));
-            offset += Guids.Length;
-
-            if (!Blobs.IsEmpty)
-            {
-                mw.Write(offset);               // Offset
-                mw.Write(Blobs.Length);         // Size
-                mw.Write(StringToPaddedUTF8("#Blob"));
-            }
-
-            Tables.Write(mw);
-            Strings.Write(mw);
-            UserStrings.Write(mw);
-            guidHeapOffset = mw.Position;
-            Guids.Write(mw);
-            if (!Blobs.IsEmpty)
-            {
-                Blobs.Write(mw);
-            }
-        }
-
-        private static int StringToPaddedUTF8Length(string str)
-        {
-            return (System.Text.Encoding.UTF8.GetByteCount(str) + 4) & ~3;
-        }
-
-        private static byte[] StringToPaddedUTF8(string str)
-        {
-            byte[] buf = new byte[(System.Text.Encoding.UTF8.GetByteCount(str) + 4) & ~3];
-            System.Text.Encoding.UTF8.GetBytes(str, 0, str.Length, buf, 0);
-            return buf;
         }
 
         internal override void ExportTypes(int fileToken, ModuleBuilder manifestModule)

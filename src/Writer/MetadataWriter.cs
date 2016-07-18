@@ -49,6 +49,9 @@ namespace Managed.Reflection.Writer
 
         internal void WriteMetadata(string version, params Heap[] streams)
         {
+            // filter out the empty streams
+            Array.FindAll(streams, stream => stream.Length != 0);
+
             Write(0x424A5342);              // Signature ("BSJB")
             Write((ushort)1);               // MajorVersion
             Write((ushort)1);               // MinorVersion
@@ -76,7 +79,7 @@ namespace Managed.Reflection.Writer
             }
         }
 
-        private static int GetHeaderLength(string version, Heap[] streams)
+        internal static int GetHeaderLength(string version, params Heap[] streams)
         {
             var length =
                 4 + // Signature
@@ -89,9 +92,12 @@ namespace Managed.Reflection.Writer
                 2;  // Streams
             foreach (var stream in streams)
             {
-                length += 4;    // Offset
-                length += 4;    // Size
-                length += StringToPaddedUTF8Length(stream.Name);
+                if (stream.Length != 0)
+                {
+                    length += 4;    // Offset
+                    length += 4;    // Size
+                    length += StringToPaddedUTF8Length(stream.Name);
+                }
             }
             return length;
         }

@@ -353,7 +353,9 @@ namespace Managed.Reflection.Writer
 
             // Metadata
             AssertRVA(mw, MetadataRVA);
-            moduleBuilder.WriteMetadata(mw, out guidHeapOffset);
+            mw.WriteMetadata(moduleBuilder.Assembly.ImageRuntimeVersion, moduleBuilder.Tables, moduleBuilder.Strings, moduleBuilder.UserStrings,
+                moduleBuilder.Guids, moduleBuilder.Blobs);
+            guidHeapOffset = moduleBuilder.Guids.Position;
 
             // alignment padding
             for (int i = (int)(VTableFixupsRVA - (MetadataRVA + MetadataLength)); i > 0; i--)
