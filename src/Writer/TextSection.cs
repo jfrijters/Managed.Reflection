@@ -174,8 +174,7 @@ namespace Managed.Reflection.Writer
             {
                 if (moduleBuilder.symbolWriter != null)
                 {
-                    IMAGE_DEBUG_DIRECTORY idd = new IMAGE_DEBUG_DIRECTORY();
-                    return (uint)moduleBuilder.symbolWriter.GetDebugInfo(ref idd).Length;
+                    return (uint)moduleBuilder.symbolWriter.GetDebugInfoLength();
                 }
                 return 0;
             }

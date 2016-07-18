@@ -35,6 +35,7 @@ namespace Managed.Reflection.Impl
     {
         private const string ImageRuntimeVersion = "PDB v1.0";
         private readonly ModuleBuilder moduleBuilder;
+        private readonly string fileName;
         private readonly Guid guid = Guid.NewGuid();
         private uint timestamp;
         private readonly TableHeap Tables = new TableHeap();
@@ -88,6 +89,7 @@ namespace Managed.Reflection.Impl
         internal PortablePdbWriter(ModuleBuilder moduleBuilder)
         {
             this.moduleBuilder = moduleBuilder;
+            fileName = System.IO.Path.ChangeExtension(moduleBuilder.FullyQualifiedName, ".pdb");
         }
 
         public bool IsDeterministic
@@ -102,11 +104,6 @@ namespace Managed.Reflection.Impl
             scope.VariableList.Add(new Variable { Name = name, Index = addr1 });
         }
 
-        private string GetFileName()
-        {
-            return System.IO.Path.ChangeExtension(moduleBuilder.FullyQualifiedName, ".pdb");
-        }
-
         public byte[] GetDebugInfo(ref IMAGE_DEBUG_DIRECTORY idd)
         {
             // From Roslyn's https://github.com/dotnet/roslyn/blob/86c5958add9e977454f6b052bb190f2cb1754d80/src/Compilers/Core/Portable/NativePdbWriter/PdbWriter.cs
@@ -118,8 +115,7 @@ namespace Managed.Reflection.Impl
             //     DWORD age;                   // age
             //     char szPDB[0];               // zero-terminated UTF8 file name passed to the writer
             // };
-            var fileName = GetFileName();
-            var data = new byte[4 + 16 + 4 + Encoding.UTF8.GetByteCount(fileName) + 1];
+            var data = new byte[GetDebugInfoLength()];
             // dwSig
             data[0] = (byte)'R';
             data[1] = (byte)'S';
@@ -138,15 +134,19 @@ namespace Managed.Reflection.Impl
             idd.MajorVersion = 0x0100;
             idd.MinorVersion = 0x504D;
 
-            // TODO we get called multiple times with a dummy IMAGE_DEBUG_DIRECTORY, that shouldn't happen)
-            // HACK
-            // BUGBUG
-            if (idd.TimeDateStamp != 0)
-            {
-                // remember the TimeStamp, we need it later
-                timestamp = idd.TimeDateStamp;
-            }
+            // remember the TimeStamp, we need it later
+            timestamp = idd.TimeDateStamp;
             return data;
+        }
+
+        public int GetDebugInfoLength()
+        {
+            return
+                4 +     // DWORD dwSig
+                16 +    // GUID guidSig
+                4 +     // DWORD age
+                Encoding.UTF8.GetByteCount(fileName) +
+                1;      // char szPDB[0]
         }
 
         public void OpenMethod(SymbolToken symbolToken, MethodBase mb)
@@ -287,7 +287,7 @@ namespace Managed.Reflection.Impl
             Guids.Freeze();
             Blobs.Freeze();
 
-            using (var fs = System.IO.File.Create(GetFileName()))
+            using (var fs = System.IO.File.Create(fileName))
             {
                 var tablesForRowCountOnly = moduleBuilder.GetTables();
                 var tables = new Table[64];
