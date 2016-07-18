@@ -200,7 +200,7 @@ namespace Managed.Reflection.Reader
                 case 7:
                     return (ModuleTable.Index << 24) + (codedIndex >> 5);
                 case 8:
-                    throw new BadImageFormatException();
+                    return (DeclSecurityTable.Index << 24) + (codedIndex >> 5);
                 case 9:
                     return (PropertyTable.Index << 24) + (codedIndex >> 5);
                 case 10:

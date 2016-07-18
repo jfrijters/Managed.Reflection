@@ -78,7 +78,7 @@ namespace Managed.Reflection.Metadata
             this.bigMemberRefParent = IsBig(tables, 3, TypeDefTable.Index, TypeRefTable.Index, ModuleRefTable.Index, MethodDefTable.Index, TypeSpecTable.Index);
             this.bigMethodDefOrRef = IsBig(tables, 1, MethodDefTable.Index, MemberRefTable.Index);
             this.bigHasCustomAttribute = IsBig(tables, 5, MethodDefTable.Index, FieldTable.Index, TypeRefTable.Index, TypeDefTable.Index, ParamTable.Index,
-                InterfaceImplTable.Index, MemberRefTable.Index, ModuleTable.Index, /*PermissionTable.Index,*/ PropertyTable.Index, EventTable.Index,
+                InterfaceImplTable.Index, MemberRefTable.Index, ModuleTable.Index, DeclSecurityTable.Index, PropertyTable.Index, EventTable.Index,
                 StandAloneSigTable.Index, ModuleRefTable.Index, TypeSpecTable.Index, AssemblyTable.Index, AssemblyRefTable.Index, FileTable.Index,
                 ExportedTypeTable.Index, ManifestResourceTable.Index, GenericParamTable.Index, GenericParamConstraintTable.Index, MethodSpecTable.Index);
             this.bigCustomAttributeType = IsBig(tables, 3, MethodDefTable.Index, MemberRefTable.Index);

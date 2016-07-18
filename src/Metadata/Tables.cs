@@ -1284,7 +1284,8 @@ namespace Managed.Reflection.Metadata
                     return (token & 0xFFFFFF) << 5 | 6;
                 case ModuleTable.Index:
                     return (token & 0xFFFFFF) << 5 | 7;
-                // Permission (8) table doesn't exist in the spec
+                case DeclSecurityTable.Index:
+                    return (token & 0xFFFFFF) << 5 | 8;
                 case PropertyTable.Index:
                     return (token & 0xFFFFFF) << 5 | 9;
                 case EventTable.Index:
