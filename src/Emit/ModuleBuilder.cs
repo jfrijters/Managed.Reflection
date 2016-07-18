@@ -72,42 +72,18 @@ namespace Managed.Reflection.Emit
         private struct ResourceWriterRecord
         {
             private readonly string name;
-#if !NETSTANDARD
-            private readonly ResourceWriter rw;
-#endif
             private readonly Stream stream;
             private readonly ResourceAttributes attributes;
 
-#if NETSTANDARD
             internal ResourceWriterRecord(string name, Stream stream, ResourceAttributes attributes)
             {
                 this.name = name;
                 this.stream = stream;
                 this.attributes = attributes;
             }
-#else
-            internal ResourceWriterRecord(string name, Stream stream, ResourceAttributes attributes)
-                : this(name, null, stream, attributes)
-            {
-            }
-
-            internal ResourceWriterRecord(string name, ResourceWriter rw, Stream stream, ResourceAttributes attributes)
-            {
-                this.name = name;
-                this.rw = rw;
-                this.stream = stream;
-                this.attributes = attributes;
-            }
-#endif
 
             internal void Emit(ModuleBuilder mb, int offset)
             {
-#if !NETSTANDARD
-                if (rw != null)
-                {
-                    rw.Generate();
-                }
-#endif
                 ManifestResourceTable.Record rec = new ManifestResourceTable.Record();
                 rec.Offset = offset;
                 rec.Flags = (int)attributes;
@@ -135,12 +111,6 @@ namespace Managed.Reflection.Emit
 
             internal void Close()
             {
-#if !NETSTANDARD
-                if (rw != null)
-                {
-                    rw.Close();
-                }
-#endif
             }
         }
 
@@ -558,23 +528,6 @@ namespace Managed.Reflection.Emit
         {
             resourceWriters.Add(new ResourceWriterRecord(name, stream, attribute));
         }
-
-#if !NETSTANDARD
-        public IResourceWriter DefineResource(string name, string description)
-        {
-            return DefineResource(name, description, ResourceAttributes.Public);
-        }
-
-        public IResourceWriter DefineResource(string name, string description, ResourceAttributes attribute)
-        {
-            // FXBUG we ignore the description, because there is no such thing
-
-            MemoryStream mem = new MemoryStream();
-            ResourceWriter rw = new ResourceWriter(mem);
-            resourceWriters.Add(new ResourceWriterRecord(name, rw, mem, attribute));
-            return rw;
-        }
-#endif
 
         internal void EmitResources()
         {

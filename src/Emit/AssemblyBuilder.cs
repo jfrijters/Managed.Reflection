@@ -75,9 +75,6 @@ namespace Managed.Reflection.Emit
             internal string Name;
             internal string FileName;
             internal ResourceAttributes Attributes;
-#if !NETSTANDARD
-            internal ResourceWriter Writer;
-#endif
         }
 
         internal AssemblyBuilder(Universe universe, AssemblyName name, string dir, IEnumerable<CustomAttributeBuilder> customAttributes)
@@ -410,13 +407,6 @@ namespace Managed.Reflection.Emit
 
             foreach (ResourceFile resfile in resourceFiles)
             {
-#if !NETSTANDARD
-                if (resfile.Writer != null)
-                {
-                    resfile.Writer.Generate();
-                    resfile.Writer.Close();
-                }
-#endif
                 int fileToken = AddFile(manifestModule, resfile.FileName, 1 /*ContainsNoMetaData*/);
                 ManifestResourceTable.Record rec = new ManifestResourceTable.Record();
                 rec.Offset = 0;
@@ -494,32 +484,6 @@ namespace Managed.Reflection.Emit
             resfile.Attributes = attribs;
             resourceFiles.Add(resfile);
         }
-
-#if !NETSTANDARD
-        public IResourceWriter DefineResource(string name, string description, string fileName)
-        {
-            return DefineResource(name, description, fileName, ResourceAttributes.Public);
-        }
-
-        public IResourceWriter DefineResource(string name, string description, string fileName, ResourceAttributes attribute)
-        {
-            // FXBUG we ignore the description, because there is no such thing
-
-            string fullPath = fileName;
-            if (dir != null)
-            {
-                fullPath = Path.Combine(dir, fileName);
-            }
-            ResourceWriter rw = new ResourceWriter(fullPath);
-            ResourceFile resfile;
-            resfile.Name = name;
-            resfile.FileName = fileName;
-            resfile.Attributes = attribute;
-            resfile.Writer = rw;
-            resourceFiles.Add(resfile);
-            return rw;
-        }
-#endif
 
         public void DefineVersionInfoResource()
         {
