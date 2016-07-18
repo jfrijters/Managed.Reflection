@@ -33,7 +33,6 @@ namespace Managed.Reflection.Impl
 {
     sealed class PortablePdbWriter : ISymbolWriterImpl
     {
-        private const string ImageRuntimeVersion = "PDB v1.0";
         private readonly ModuleBuilder moduleBuilder;
         private readonly string fileName;
         private Guid guid;
@@ -329,7 +328,7 @@ namespace Managed.Reflection.Impl
                 var mw = new PortablePdbMetadataWriter(fs, tables, tablesForRowCountOnly, Strings.IsBig, Guids.IsBig, Blobs.IsBig);
                 Tables.Freeze(mw);
                 var pdb = new PdbHeap(guid, timestamp, moduleBuilder.GetTables(), GetEntryPointToken());
-                mw.WriteMetadata(ImageRuntimeVersion, pdb, Tables, Strings, UserStrings, Guids, Blobs);
+                mw.WriteMetadata("PDB v1.0", pdb, Tables, Strings, UserStrings, Guids, Blobs);
             }
         }
 
