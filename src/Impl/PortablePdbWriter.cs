@@ -71,6 +71,7 @@ namespace Managed.Reflection.Impl
             internal int StartOffset;
             internal int Length;
             internal readonly List<Variable> VariableList = new List<Variable>();
+            internal readonly List<string> Namespaces = new List<string>();
 
             internal Scope(Scope parent)
             {
@@ -246,6 +247,7 @@ namespace Managed.Reflection.Impl
 
         public void UsingNamespace(string usingNamespace)
         {
+            scope.Namespaces.Add(usingNamespace);
         }
 
         public ISymbolDocumentWriter DefineDocument(string url, Guid language, Guid languageVendor, Guid documentType)
@@ -278,9 +280,7 @@ namespace Managed.Reflection.Impl
             var localScope = new LocalScopeTable();
             var localVariable = new LocalVariableTable();
             var importScope = new ImportScopeTable();
-            importScope.AddRecord(new ImportScopeTable.Record { Parent = 0, Imports = 0 });
-            importScope.AddRecord(new ImportScopeTable.Record { Parent = 1, Imports = 0 });
-            CreateLocalScopeAndLocalVariables(localScope, localVariable);
+            CreateLocalScopeAndLocalVariables(localScope, localVariable, importScope);
 
             Strings.Freeze();
             UserStrings.Freeze();
@@ -309,7 +309,7 @@ namespace Managed.Reflection.Impl
             }
         }
 
-        private void CreateLocalScopeAndLocalVariables(LocalScopeTable localScope, LocalVariableTable localVariable)
+        private void CreateLocalScopeAndLocalVariables(LocalScopeTable localScope, LocalVariableTable localVariable, ImportScopeTable importScope)
         {
             var methods = this.methods.ToArray();
             Array.Sort(methods, (m1, m2) => tokenMap[m1.Token].CompareTo(tokenMap[m2.Token]));
@@ -321,8 +321,8 @@ namespace Managed.Reflection.Impl
                 {
                     LocalScopeTable.Record scope;
                     scope.Method = methods[i].Token & 0xFFFFFF;
-                    // TODO
-                    scope.ImportScope = 2;
+                    // TODO we don't set the parent ImportScope, because Visual Studio doesn't seem to need it
+                    scope.ImportScope = importScope.FindOrAddRecord(0, CreateNamespaceImportBlob(scopes[j].Namespaces));
                     scope.VariableList = localVariable.RowCount + 1;
                     scope.ConstantList = 1;
                     scope.StartOffset = scopes[j].StartOffset;
@@ -338,6 +338,23 @@ namespace Managed.Reflection.Impl
                     }
                 }
             }
+        }
+
+        private int CreateNamespaceImportBlob(List<string> namespaces)
+        {
+            if (namespaces.Count == 0)
+            {
+                return 0;
+            }
+            var bb = new ByteBuffer(namespaces.Count * 20);
+            foreach (var ns in namespaces)
+            {
+                // kind
+                bb.WriteCompressedUInt(1);
+                // target-namespace
+                bb.WriteCompressedUInt(Blobs.Add(ByteBuffer.Wrap(Encoding.UTF8.GetBytes(ns))));
+            }
+            return Blobs.Add(bb);
         }
 
         private MethodDebugInformationTable CreateMethodDebugInformation()

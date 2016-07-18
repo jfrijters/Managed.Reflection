@@ -3031,6 +3031,18 @@ namespace Managed.Reflection.Metadata
                 .WriteBlobIndex()
                 .Value;
         }
+
+        internal int FindOrAddRecord(int parent, int imports)
+        {
+            for (int i = 0; i < rowCount; i++)
+            {
+                if (records[i].Parent == parent && records[i].Imports == imports)
+                {
+                    return i + 1;
+                }
+            }
+            return AddRecord(new Record { Parent = parent, Imports = imports });
+        }
     }
 
     sealed class StateMachineMethodTable : Table<StateMachineMethodTable.Record>
