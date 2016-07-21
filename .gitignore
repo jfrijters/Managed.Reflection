@@ -45,9 +45,12 @@ Temporary Items
 # Visual Studio
 .vs
 *.csproj
+*.csproj.user
 *.sln
 *.dll
 *.pdb
 obj
 bin
 project.lock.json
+packages
+packages.config
