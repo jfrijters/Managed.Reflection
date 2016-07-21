@@ -48,6 +48,6 @@ Temporary Items
 *.sln
 *.dll
 *.pdb
-src/obj
-src/bin
+obj
+bin
 project.lock.json

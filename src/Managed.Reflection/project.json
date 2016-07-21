@@ -4,7 +4,7 @@
     "description": "Managed implementation of System.Reflection[.Emit]",
     "buildOptions": {
         "debugType": "portable",
-        "keyFile": "../../Managed.Reflection.snk"
+        "keyFile": "../../../Managed.Reflection.snk"
     },
     "dependencies": {
         "NETStandard.Library": "1.6.0",
