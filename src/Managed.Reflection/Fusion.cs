@@ -205,15 +205,17 @@ namespace Managed.Reflection
             }
 
             bool fxUnified = false;
-            bool versionMatch = version1 == version2;
+
+            // build and revision numbers are ignored
+            bool fxVersionMatch = version1.Major == version2.Major && version1.Minor == version2.Minor;
             if (IsFrameworkAssembly(name1))
             {
-                fxUnified |= !versionMatch;
+                fxUnified |= !fxVersionMatch;
                 version1 = FrameworkVersion;
             }
             if (IsFrameworkAssembly(name2) && version2 < FrameworkVersionNext)
             {
-                fxUnified |= !versionMatch;
+                fxUnified |= !fxVersionMatch;
                 version2 = FrameworkVersion;
             }
 
@@ -260,7 +262,7 @@ namespace Managed.Reflection
                         return false;
                     }
                 }
-                else if (!versionMatch || fxUnified)
+                else if (fxUnified || version1 != version2)
                 {
                     result = partial ? AssemblyComparisonResult.EquivalentPartialFXUnified : AssemblyComparisonResult.EquivalentFXUnified;
                     return true;
