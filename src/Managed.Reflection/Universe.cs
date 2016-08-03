@@ -128,6 +128,7 @@ namespace Managed.Reflection
         DisableWindowsRuntimeProjection = 64,
         DecodeVersionInfoAttributeBlobs = 128,
         DeterministicOutput = 256,
+        DisableDefaultAssembliesLookup = 512,
     }
 
     public sealed class Universe : IDisposable
@@ -685,7 +686,7 @@ namespace Managed.Reflection
         private Assembly GetLoadedAssembly(string refname)
         {
             Assembly asm;
-            if (!assembliesByName.TryGetValue(refname, out asm))
+            if (!assembliesByName.TryGetValue(refname, out asm) && (options & UniverseOptions.DisableDefaultAssembliesLookup) == 0)
             {
                 string simpleName = GetSimpleAssemblyName(refname);
                 for (int i = 0; i < assemblies.Count; i++)
