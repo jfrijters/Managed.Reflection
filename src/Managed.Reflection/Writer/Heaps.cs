@@ -306,6 +306,11 @@ namespace Managed.Reflection.Writer
         internal int Add(Guid guid)
         {
             Debug.Assert(!frozen);
+            var index = list.IndexOf(guid);
+            if (index >= 0)
+            {
+                return index + 1;
+            }
             list.Add(guid);
             return list.Count;
         }
