@@ -333,6 +333,12 @@ namespace Managed.Reflection.Writer
             // file alignment
             stream.SetLength(reloc.PointerToRawData + reloc.SizeOfRawData);
 
+            if (moduleBuilder.symbolWriter != null)
+            {
+                moduleBuilder.WriteSymbolTokenMap();
+                moduleBuilder.symbolWriter.Close();
+            }
+
             // if we don't have a guid or timestamp, generate one based on the contents of the assembly
             if (moduleBuilder.universe.Deterministic
                 && (moduleBuilder.GetModuleVersionIdOrEmpty() == Guid.Empty || moduleBuilder.GetTimeDateStamp() == 0 || moduleBuilder.symbolWriter != null))
@@ -364,12 +370,6 @@ namespace Managed.Reflection.Writer
             if (keyPair != null)
             {
                 StrongName(stream, keyPair, writer.HeaderSize, text.PointerToRawData, code.StrongNameSignatureRVA - text.VirtualAddress + text.PointerToRawData, code.StrongNameSignatureLength);
-            }
-
-            if (moduleBuilder.symbolWriter != null)
-            {
-                moduleBuilder.WriteSymbolTokenMap();
-                moduleBuilder.symbolWriter.Close();
             }
         }
 

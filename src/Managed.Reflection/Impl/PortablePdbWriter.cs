@@ -107,25 +107,12 @@ namespace Managed.Reflection.Impl
         {
             if (deterministicPatchupPass)
             {
-                using (var sha1 = System.Security.Cryptography.SHA1.Create())
-                {
-                    var buf = new byte[20];
-                    Buffer.BlockCopy(moduleBuilder.ModuleVersionId.ToByteArray(), 0, buf, 0, 16);
-                    Buffer.BlockCopy(BitConverter.GetBytes(moduleBuilder.GetTimeDateStamp()), 0, buf, 16, 4);
-                    var hash = sha1.ComputeHash(buf);
-                    idd.TimeDateStamp = (uint)BitConverter.ToInt32(hash, 16) | 0x80000000;
-                    Array.Resize(ref hash, 16);
-                    // set GUID type to "version 4" (random)
-                    hash[7] &= 0x0F;
-                    hash[7] |= 0x40;
-                    hash[8] &= 0x3F;
-                    hash[8] |= 0x80;
-                    guid = new Guid(hash);
-                }
+                idd.TimeDateStamp = timestamp;
             }
             else if (!IsDeterministic)
             {
                 guid = Guid.NewGuid();
+                timestamp = idd.TimeDateStamp;
             }
 
             // From Roslyn's https://github.com/dotnet/roslyn/blob/86c5958add9e977454f6b052bb190f2cb1754d80/src/Compilers/Core/Portable/NativePdbWriter/PdbWriter.cs
@@ -156,8 +143,6 @@ namespace Managed.Reflection.Impl
             idd.MajorVersion = 0x0100;
             idd.MinorVersion = 0x504D;
 
-            // remember the TimeStamp, we need it later
-            timestamp = idd.TimeDateStamp;
             return data;
         }
 
@@ -332,6 +317,25 @@ namespace Managed.Reflection.Impl
                 Tables.Freeze(mw);
                 var pdb = new PdbHeap(guid, timestamp, moduleBuilder.GetTables(), GetEntryPointToken());
                 mw.WriteMetadata("PDB v1.0", pdb, Tables, Strings, UserStrings, Guids, Blobs);
+                if (IsDeterministic)
+                {
+                    byte[] hash;
+                    using (var sha1 = System.Security.Cryptography.SHA1.Create())
+                    {
+                        fs.Seek(0, System.IO.SeekOrigin.Begin);
+                        hash = sha1.ComputeHash(fs);
+                    }
+                    timestamp = (uint)BitConverter.ToInt32(hash, 16) | 0x80000000;
+                    Array.Resize(ref hash, 16);
+                    // set GUID type to "version 4" (random)
+                    hash[7] &= 0x0F;
+                    hash[7] |= 0x40;
+                    hash[8] &= 0x3F;
+                    hash[8] |= 0x80;
+                    guid = new Guid(hash);
+                    fs.Position = pdb.PositionPdbId;
+                    PdbHeap.WritePdbId(mw, guid, timestamp);
+                }
             }
         }
 
@@ -433,6 +437,7 @@ namespace Managed.Reflection.Impl
         private readonly uint timestamp;
         private readonly Table[] referencedTables;
         private readonly int entryPointToken;
+        internal long PositionPdbId { get; private set; }
 
         internal PdbHeap(Guid guid, uint timestamp, Table[] referencedTables, int entryPointToken)
         {
@@ -456,11 +461,17 @@ namespace Managed.Reflection.Impl
             return 20 + 4 + 8 + tableCount * 4;
         }
 
+        internal static void WritePdbId(MetadataWriter mw, Guid guid, uint timestamp)
+        {
+            mw.Write(guid.ToByteArray());
+            mw.Write(timestamp);
+        }
+
         protected override void WriteImpl(MetadataWriter mw)
         {
             // PDB id
-            mw.Write(guid.ToByteArray());
-            mw.Write(timestamp);
+            PositionPdbId = mw.Position;
+            WritePdbId(mw, guid, timestamp);
             // EntryPoint
             // LAMESPEC the spec says "The same value as stored in CLI header of the PE file.",
             // but the intent is clearly to allow a separate "user" entry point
