@@ -284,11 +284,14 @@ namespace Managed.Reflection.Impl
 
         private int AddDocumentNameBlob(string name)
         {
-            // TODO optimize the name encoding
-            var bb = new ByteBuffer(2);
-            bb.Write((byte)0);
-            // LAMESPEC spec says "part is a compressed integer into the #Blob heap"
-            bb.WriteCompressedUInt(Blobs.Add(ByteBuffer.Wrap(Encoding.UTF8.GetBytes(name))));
+            var bb = new ByteBuffer(16);
+            var sep = System.IO.Path.DirectorySeparatorChar == '/' ? '/' : '\\';
+            bb.Write((byte)sep);
+            foreach (var part in name.Split(sep))
+            {
+                // LAMESPEC spec says "part is a compressed integer into the #Blob heap"
+                bb.WriteCompressedUInt(Blobs.Add(ByteBuffer.Wrap(Encoding.UTF8.GetBytes(part))));
+            }
             return Blobs.Add(bb);
         }
 
