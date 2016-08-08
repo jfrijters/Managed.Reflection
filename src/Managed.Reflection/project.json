@@ -1,6 +1,6 @@
 ﻿{
     "name": "Managed.Reflection",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "Managed implementation of System.Reflection[.Emit]",
     "buildOptions": {
         "debugType": "portable",
