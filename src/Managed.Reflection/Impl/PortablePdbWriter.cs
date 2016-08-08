@@ -361,7 +361,7 @@ namespace Managed.Reflection.Impl
                 for (var j = 0; j < scopes.Length; j++)
                 {
                     LocalScopeTable.Record scope;
-                    scope.Method = methods[i].Token & 0xFFFFFF;
+                    scope.Method = tokenMap[methods[i].Token] & 0xFFFFFF;
                     // TODO we don't set the parent ImportScope, because Visual Studio doesn't seem to need it
                     scope.ImportScope = importScope.FindOrAddRecord(0, CreateNamespaceImportBlob(scopes[j].Namespaces));
                     scope.VariableList = localVariable.RowCount + 1;
