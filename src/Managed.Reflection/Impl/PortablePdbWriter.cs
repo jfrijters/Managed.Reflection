@@ -357,7 +357,7 @@ namespace Managed.Reflection.Impl
             for (var i = 0; i < methods.Length; i++)
             {
                 var scopes = methods[i].Scopes;
-                Array.Sort(scopes, (s1, s2) => s1.StartOffset != s2.StartOffset ? s1.StartOffset.CompareTo(s2.StartOffset) : s1.Length.CompareTo(s2.Length));
+                Array.Sort(scopes, (s1, s2) => s1.StartOffset != s2.StartOffset ? s1.StartOffset.CompareTo(s2.StartOffset) : s2.Length.CompareTo(s1.Length));
                 for (var j = 0; j < scopes.Length; j++)
                 {
                     LocalScopeTable.Record scope;
