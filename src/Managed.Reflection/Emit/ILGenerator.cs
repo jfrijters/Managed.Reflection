@@ -890,7 +890,15 @@ namespace Managed.Reflection.Emit
             sp.startColumn = startColumn;
             sp.endLine = endLine;
             sp.endColumn = endColumn;
-            sequencePoints.Add(sp);
+            // if you call MarkSequencePoint multiple times (in the same location), the last call wins
+            if (sequencePoints.Count != 0 && sequencePoints[sequencePoints.Count - 1].offset == code.Position)
+            {
+                sequencePoints[sequencePoints.Count - 1] = sp;
+            }
+            else
+            {
+                sequencePoints.Add(sp);
+            }
         }
 
         public void ThrowException(Type excType)
