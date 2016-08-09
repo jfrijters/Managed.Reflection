@@ -269,15 +269,27 @@ namespace Managed.Reflection.Impl
 
         private int AddDocumentNameBlob(string name)
         {
-            var bb = new ByteBuffer(16);
-            var sep = System.IO.Path.DirectorySeparatorChar == '/' ? '/' : '\\';
-            bb.Write((byte)sep);
-            foreach (var part in name.Split(sep))
+            var bb = new ByteBuffer(7);
+            for (var i = name.Length - 1; i >= 0; i--)
             {
-                // LAMESPEC spec says "part is a compressed integer into the #Blob heap"
-                bb.WriteCompressedUInt(Blobs.Add(ByteBuffer.Wrap(Encoding.UTF8.GetBytes(part))));
+                var ch = name[i];
+                if (ch == '/' || ch == '\\')
+                {
+                    bb.Write((byte)ch);
+                    WriteDocumentNamePart(bb, name.Substring(0, i));
+                    WriteDocumentNamePart(bb, name.Substring(i + 1));
+                    return Blobs.Add(bb);
+                }
             }
+            bb.Write((byte)0);
+            WriteDocumentNamePart(bb, name);
             return Blobs.Add(bb);
+        }
+
+        private void WriteDocumentNamePart(ByteBuffer bb, string part)
+        {
+            // LAMESPEC spec says "part is a compressed integer into the #Blob heap"
+            bb.WriteCompressedUInt(Blobs.Add(ByteBuffer.Wrap(Encoding.UTF8.GetBytes(part))));
         }
 
         public void SetUserEntryPoint(SymbolToken symbolToken)
