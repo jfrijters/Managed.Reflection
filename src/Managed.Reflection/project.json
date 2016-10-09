@@ -7,12 +7,16 @@
         "keyFile": "../../../Managed.Reflection.snk"
     },
     "dependencies": {
-        "NETStandard.Library": "1.6.0",
-        "System.Security.Cryptography.Algorithms": "4.2.0",
-        "System.Security.Cryptography.Csp": "4.0.0"
     },
     "frameworks": {
-        "netstandard1.3": { }
+        "netstandard1.3": {
+            "dependencies": {
+                "NETStandard.Library": "1.6.0",
+                "System.Security.Cryptography.Algorithms": "4.2.0",
+                "System.Security.Cryptography.Csp": "4.0.0"
+            }
+        },
+        "net45": {}
     },
     "packOptions": {
         "summary": "Managed implementation of System.Reflection[.Emit]",
